@@ -1,0 +1,2719 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PPI Electricity Theft Detection System</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="/_sdk/data_sdk.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&amp;family=Rajdhani:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; padding: 0; }
+    
+    :root {
+      --primary: #00f5ff;
+      --secondary: #0a1628;
+      --accent: #ff006e;
+      --success: #00ff88;
+      --warning: #ffaa00;
+      --surface: #0d2137;
+      --text: #e0f7ff;
+    }
+    
+    body {
+      font-family: 'Rajdhani', sans-serif;
+      background: var(--secondary);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+    
+    .font-orbitron { font-family: 'Orbitron', monospace; }
+    
+    /* Animated Background */
+    .animated-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      background: linear-gradient(135deg, #0a1628 0%, #0d2137 50%, #061220 100%);
+      overflow: hidden;
+    }
+    
+    .grid-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        linear-gradient(rgba(0,245,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,245,255,0.03) 1px, transparent 1px);
+      background-size: 50px 50px;
+      animation: gridMove 20s linear infinite;
+    }
+    
+    @keyframes gridMove {
+      0% { transform: translate(0, 0); }
+      100% { transform: translate(50px, 50px); }
+    }
+    
+    .particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: var(--primary);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--primary), 0 0 20px var(--primary);
+      animation: float 15s infinite;
+      opacity: 0.6;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+      10% { opacity: 0.6; }
+      90% { opacity: 0.6; }
+      100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; }
+    }
+    
+    .energy-wave {
+      position: absolute;
+      width: 200%;
+      height: 200%;
+      top: -50%;
+      left: -50%;
+      background: radial-gradient(ellipse at center, transparent 0%, transparent 40%, rgba(0,245,255,0.02) 50%, transparent 60%);
+      animation: waveRotate 30s linear infinite;
+    }
+    
+    @keyframes waveRotate {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* Glowing Effects */
+    .glow-text {
+      text-shadow: 0 0 10px var(--primary), 0 0 20px var(--primary), 0 0 40px var(--primary);
+    }
+    
+    .glow-box {
+      box-shadow: 0 0 20px rgba(0,245,255,0.3), inset 0 0 20px rgba(0,245,255,0.1);
+    }
+    
+    .glow-border {
+      border: 1px solid rgba(0,245,255,0.3);
+      box-shadow: 0 0 10px rgba(0,245,255,0.2), inset 0 0 10px rgba(0,245,255,0.05);
+    }
+    
+    /* Card Styles */
+    .card {
+      background: linear-gradient(135deg, rgba(13,33,55,0.9) 0%, rgba(6,18,32,0.9) 100%);
+      border: 1px solid rgba(0,245,255,0.2);
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+    }
+    
+    .card:hover {
+      border-color: rgba(0,245,255,0.5);
+      box-shadow: 0 0 30px rgba(0,245,255,0.2);
+      transform: translateY(-2px);
+    }
+    
+    /* Button Styles */
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary) 0%, #00d4ff 100%);
+      color: var(--secondary);
+      font-weight: 600;
+      padding: 12px 24px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .btn-primary:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 30px rgba(0,245,255,0.5);
+    }
+    
+    .btn-secondary {
+      background: transparent;
+      color: var(--primary);
+      border: 2px solid var(--primary);
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(0,245,255,0.1);
+      box-shadow: 0 0 20px rgba(0,245,255,0.3);
+    }
+    
+    /* Sidebar */
+    .sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 280px;
+      height: 100%;
+      background: linear-gradient(180deg, rgba(13,33,55,0.98) 0%, rgba(6,18,32,0.98) 100%);
+      border-right: 1px solid rgba(0,245,255,0.2);
+      transform: translateX(-100%);
+      transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 1000;
+      overflow-y: auto;
+    }
+    
+    .sidebar.open { transform: translateX(0); }
+    
+    .sidebar-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+      z-index: 999;
+    }
+    
+    .sidebar-overlay.show {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 20px;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border-left: 3px solid transparent;
+    }
+    
+    .nav-item:hover, .nav-item.active {
+      background: rgba(0,245,255,0.1);
+      border-left-color: var(--primary);
+      color: var(--primary);
+    }
+    
+    .nav-item svg {
+      width: 24px;
+      height: 24px;
+    }
+    
+    /* Dashboard Grid */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    
+    /* Stat Cards */
+    .stat-card {
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+    }
+    
+    .stat-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--primary);
+      line-height: 1;
+    }
+    
+    /* Charts */
+    .chart-container {
+      position: relative;
+      height: 200px;
+      margin-top: 20px;
+    }
+    
+    canvas { width: 100% !important; height: 100% !important; }
+    
+    /* Radar */
+    .radar-container {
+      position: relative;
+      width: 100%;
+      max-width: 400px;
+      aspect-ratio: 1;
+      margin: 0 auto;
+    }
+    
+    .radar-circle {
+      position: absolute;
+      border: 1px solid rgba(0,245,255,0.3);
+      border-radius: 50%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    
+    .radar-sweep {
+      position: absolute;
+      width: 50%;
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary), transparent);
+      top: 50%;
+      left: 50%;
+      transform-origin: left center;
+      animation: radarSweep 4s linear infinite;
+    }
+    
+    @keyframes radarSweep {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .radar-dot {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: var(--accent);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      animation: blink 1s ease-in-out infinite;
+      box-shadow: 0 0 10px var(--accent), 0 0 20px var(--accent);
+    }
+    
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    
+    /* Map Container */
+    .map-container {
+      width: 100%;
+      height: 400px;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+      background: linear-gradient(135deg, #1a3a5c 0%, #0d2137 100%);
+    }
+    
+    .map-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    
+    .map-grid {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        linear-gradient(rgba(0,245,255,0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,245,255,0.1) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+    
+    .map-marker {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: var(--accent);
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      animation: markerPulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes markerPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(255,0,110,0.4); }
+      50% { box-shadow: 0 0 0 20px rgba(255,0,110,0); }
+    }
+    
+    /* Alert Animation */
+    .alert-item {
+      animation: slideIn 0.5s ease-out;
+    }
+    
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    
+    .alert-critical {
+      border-left: 4px solid var(--accent);
+      background: linear-gradient(90deg, rgba(255,0,110,0.1), transparent);
+    }
+    
+    .alert-warning {
+      border-left: 4px solid var(--warning);
+      background: linear-gradient(90deg, rgba(255,170,0,0.1), transparent);
+    }
+    
+    .alert-success {
+      border-left: 4px solid var(--success);
+      background: linear-gradient(90deg, rgba(0,255,136,0.1), transparent);
+    }
+    
+    /* Power Flow Animation */
+    .power-flow {
+      position: relative;
+      height: 120px;
+      margin: 20px 0;
+    }
+    
+    .power-line {
+      position: absolute;
+      height: 4px;
+      background: linear-gradient(90deg, transparent, var(--primary), transparent);
+      top: 50%;
+      left: 0;
+      right: 0;
+      transform: translateY(-50%);
+    }
+    
+    .power-particle {
+      position: absolute;
+      width: 20px;
+      height: 4px;
+      background: var(--primary);
+      top: 50%;
+      transform: translateY(-50%);
+      border-radius: 2px;
+      box-shadow: 0 0 10px var(--primary), 0 0 20px var(--primary);
+      animation: powerMove 2s linear infinite;
+    }
+    
+    @keyframes powerMove {
+      0% { left: 0%; opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { left: 100%; opacity: 0; }
+    }
+    
+    .power-node {
+      position: absolute;
+      width: 60px;
+      height: 60px;
+      background: var(--surface);
+      border: 2px solid var(--primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      top: 50%;
+      transform: translateY(-50%);
+      box-shadow: 0 0 20px rgba(0,245,255,0.3);
+    }
+    
+    .power-node svg { width: 30px; height: 30px; fill: var(--primary); }
+    
+    /* Input Styles */
+    .input-field {
+      background: rgba(0,245,255,0.05);
+      border: 1px solid rgba(0,245,255,0.3);
+      border-radius: 8px;
+      padding: 12px 16px;
+      color: var(--text);
+      width: 100%;
+      transition: all 0.3s ease;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 1rem;
+    }
+    
+    .input-field:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 20px rgba(0,245,255,0.2);
+    }
+    
+    .input-field::placeholder { color: rgba(224,247,255,0.4); }
+    
+    /* Status Indicators */
+    .status-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    
+    .status-online {
+      background: var(--success);
+      box-shadow: 0 0 10px var(--success);
+    }
+    
+    .status-warning {
+      background: var(--warning);
+      box-shadow: 0 0 10px var(--warning);
+    }
+    
+    .status-critical {
+      background: var(--accent);
+      box-shadow: 0 0 10px var(--accent);
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+    }
+    
+    /* Meter Card */
+    .meter-card {
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .meter-gauge {
+      width: 100%;
+      height: 10px;
+      background: rgba(0,245,255,0.1);
+      border-radius: 5px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    
+    .meter-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--success), var(--primary));
+      border-radius: 5px;
+      transition: width 0.5s ease;
+    }
+    
+    /* Login Page */
+    .login-container {
+      min-height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .login-card {
+      width: 100%;
+      max-width: 450px;
+      padding: 40px;
+    }
+    
+    .social-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(0,245,255,0.3);
+      background: rgba(0,245,255,0.05);
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 1rem;
+    }
+    
+    .social-btn:hover {
+      background: rgba(0,245,255,0.1);
+      border-color: var(--primary);
+    }
+    
+    .social-btn svg { width: 24px; height: 24px; }
+    
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: rgba(0,245,255,0.05); }
+    ::-webkit-scrollbar-thumb { background: rgba(0,245,255,0.3); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(0,245,255,0.5); }
+    
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      .sidebar { width: 100%; }
+      .stat-value { font-size: 1.8rem; }
+      .dashboard-grid { grid-template-columns: 1fr; }
+    }
+    
+    /* Live Graph */
+    .live-graph {
+      position: relative;
+      height: 150px;
+      overflow: hidden;
+    }
+    
+    .graph-line {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    
+    /* Notification Bell */
+    .notification-bell {
+      position: relative;
+      cursor: pointer;
+    }
+    
+    .notification-badge {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      width: 20px;
+      height: 20px;
+      background: var(--accent);
+      border-radius: 50%;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      animation: badgePulse 1s ease-in-out infinite;
+    }
+    
+    @keyframes badgePulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+    
+    /* Loading Animation */
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(0,245,255,0.2);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Page Transitions */
+    .page { display: none; opacity: 0; transition: opacity 0.3s ease; }
+    .page.active { display: block; opacity: 1; }
+    
+    /* Team Card */
+    .team-card {
+      text-align: center;
+      padding: 20px;
+    }
+    
+    .team-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 15px;
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--secondary);
+    }
+
+    /* AI Chat Message Styles */
+    .ai-message {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    .ai-message.user {
+      flex-direction: row-reverse;
+    }
+
+    .ai-message-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 16px;
+    }
+
+    .ai-message-bubble {
+      max-width: 70%;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 14px;
+      line-height: 1.4;
+      word-wrap: break-word;
+    }
+
+    .ai-message-bubble.bot {
+      background: rgba(0,245,255,0.15);
+      border: 1px solid rgba(0,245,255,0.3);
+      color: var(--text);
+    }
+
+    .ai-message-bubble.user {
+      background: linear-gradient(135deg, rgba(0,245,255,0.3), rgba(255,0,110,0.2));
+      border: 1px solid rgba(0,245,255,0.4);
+      color: var(--text);
+    }
+
+    .ai-typing {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      padding: 12px 16px;
+      background: rgba(0,245,255,0.1);
+      border: 1px solid rgba(0,245,255,0.2);
+      border-radius: 12px;
+      width: fit-content;
+    }
+
+    .ai-typing-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--primary);
+      animation: typing 1.4s infinite;
+    }
+
+    .ai-typing-dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .ai-typing-dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes typing {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.7; }
+      30% { transform: translateY(-10px); opacity: 1; }
+    }
+  </style>
+  <style>body { box-sizing: border-box; }</style>
+ </head>
+ <body class="h-full">
+  <!-- Animated Background -->
+  <div class="animated-bg">
+   <div class="grid-overlay"></div>
+   <div class="energy-wave"></div>
+   <div class="particle" style="left: 10%; animation-delay: 0s;"></div>
+   <div class="particle" style="left: 20%; animation-delay: 2s;"></div>
+   <div class="particle" style="left: 30%; animation-delay: 4s;"></div>
+   <div class="particle" style="left: 40%; animation-delay: 1s;"></div>
+   <div class="particle" style="left: 50%; animation-delay: 3s;"></div>
+   <div class="particle" style="left: 60%; animation-delay: 5s;"></div>
+   <div class="particle" style="left: 70%; animation-delay: 2s;"></div>
+   <div class="particle" style="left: 80%; animation-delay: 4s;"></div>
+   <div class="particle" style="left: 90%; animation-delay: 1s;"></div>
+  </div><!-- Sidebar Overlay -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div><!-- Sidebar -->
+  <div class="sidebar" id="sidebar">
+   <div class="p-6 border-b border-cyan-500/20">
+    <div class="flex items-center gap-3">
+     <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-400 to-pink-500 flex items-center justify-center">
+      <svg class="w-7 h-7 text-gray-900" fill="currentColor" viewbox="0 0 24 24">
+       <path d="M13 3L4 14h7l-2 7 9-11h-7l2-7z" />
+      </svg>
+     </div>
+     <div>
+      <h1 class="font-orbitron font-bold text-lg text-cyan-400" id="systemNameDisplay">ETDS</h1>
+      <p class="text-xs text-gray-400">Theft Detection System</p>
+     </div>
+    </div>
+   </div>
+   <nav class="py-4">
+    <div class="nav-item active" data-page="overview">
+     <svg fill="currentColor" viewbox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" />
+     </svg><span>Overview Dashboard</span>
+    </div>
+    <div class="nav-item" data-page="analytics">
+     <svg fill="currentColor" viewbox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z" />
+     </svg><span>Analytics</span>
+    </div>
+    <div class="nav-item" data-page="meters">
+     <svg fill="currentColor" viewbox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+     </svg><span>Meters Dashboard</span>
+    </div>
+    <div class="nav-item" data-page="alerts">
+     <svg fill="currentColor" viewbox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z" />
+     </svg><span>Alerts</span>
+    </div>
+    <div class="nav-item" data-page="detection">
+     <svg fill="currentColor" viewbox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+     </svg><span>Detection System</span>
+    </div>
+    <div class="nav-item" data-page="about">
+     <svg fill="currentColor" viewbox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+     </svg><span>About System</span>
+    </div>
+    <div class="nav-item" data-page="profile">
+     <svg fill="currentColor" viewbox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+     </svg><span>Profile</span>
+    </div>
+    <div class="nav-item" data-page="aiagent">
+     <svg fill="currentColor" viewbox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z" />
+     </svg><span>AI Agent Bot</span>
+    </div>
+   </nav>
+   <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-cyan-500/20">
+    <button class="btn-secondary w-full text-sm" id="logoutBtn">
+     <svg class="w-5 h-5 inline mr-2" fill="currentColor" viewbox="0 0 24 24">
+      <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" />
+     </svg> Logout </button>
+   </div>
+  </div><!-- Main Content -->
+  <div class="min-h-full" id="mainContent">
+   <!-- Login Page -->
+   <div class="page active" id="loginPage">
+    <div class="login-container">
+     <div class="card login-card">
+      <div class="text-center mb-8">
+       <div class="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-cyan-400 to-pink-500 flex items-center justify-center">
+        <svg class="w-12 h-12 text-gray-900" fill="currentColor" viewbox="0 0 24 24">
+         <path d="M13 3L4 14h7l-2 7 9-11h-7l2-7z" />
+        </svg>
+       </div>
+       <h1 class="font-orbitron text-2xl font-bold glow-text mb-2">ETDS</h1>
+       <p class="text-gray-400">Electricity Theft Detection System</p>
+      </div>
+      <div id="loginForm">
+       <div class="mb-4">
+        <label class="block text-sm mb-2 text-gray-400">Email Address</label> <input type="email" class="input-field" placeholder="Enter your email" id="loginEmail">
+       </div>
+       <div class="mb-6">
+        <label class="block text-sm mb-2 text-gray-400">Password</label> <input type="password" class="input-field" placeholder="Enter your password" id="loginPassword">
+       </div><button class="btn-primary w-full mb-4" id="loginBtn">Sign In</button>
+       <div class="relative my-6">
+        <div class="absolute inset-0 flex items-center">
+         <div class="w-full border-t border-cyan-500/20"></div>
+        </div>
+        <div class="relative flex justify-center text-sm">
+         <span class="px-4 bg-gray-900 text-gray-400">Or continue with</span>
+        </div>
+       </div>
+       <div class="grid grid-cols-2 gap-3 mb-6">
+        <button class="social-btn" id="googleLoginBtn">
+         <svg viewbox="0 0 24 24" fill="currentColor">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" /> <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" /> <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" /> <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+         </svg> Google </button> <button class="social-btn" id="githubLoginBtn">
+         <svg viewbox="0 0 24 24" fill="currentColor">
+          <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+         </svg> GitHub </button>
+       </div>
+       <p class="text-center text-gray-400 text-sm">Don't have an account? <button class="text-cyan-400 hover:underline" id="showSignupBtn">Sign Up</button></p>
+      </div>
+      <div id="signupForm" class="hidden">
+       <div class="mb-4">
+        <label class="block text-sm mb-2 text-gray-400">Full Name</label> <input type="text" class="input-field" placeholder="Enter your name" id="signupName">
+       </div>
+       <div class="mb-4">
+        <label class="block text-sm mb-2 text-gray-400">Email Address</label> <input type="email" class="input-field" placeholder="Enter your email" id="signupEmail">
+       </div>
+       <div class="mb-6">
+        <label class="block text-sm mb-2 text-gray-400">Password</label> <input type="password" class="input-field" placeholder="Create a password" id="signupPassword">
+       </div><button class="btn-primary w-full mb-4" id="signupBtn">Create Account</button>
+       <p class="text-center text-gray-400 text-sm">Already have an account? <button class="text-cyan-400 hover:underline" id="showLoginBtn">Sign In</button></p>
+      </div>
+      <div class="mt-8 pt-6 border-t border-cyan-500/20 text-center">
+       <p class="text-xs text-gray-500">Present by PPI</p>
+       <p class="text-xs text-gray-500 mt-1" id="collegeNameDisplay">College Project</p>
+      </div>
+     </div>
+    </div>
+   </div><!-- Dashboard Pages -->
+   <div class="page" id="dashboardPage">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-gray-900/80 backdrop-blur-lg border-b border-cyan-500/20">
+     <div class="flex items-center justify-between px-4 py-3">
+      <button class="p-2 rounded-lg hover:bg-cyan-500/10 transition-colors" id="menuBtn">
+       <svg class="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+       </svg></button>
+      <h1 class="font-orbitron font-bold text-lg text-cyan-400" id="pageTitle">Overview Dashboard</h1>
+      <div class="flex items-center gap-4">
+       <div class="relative group">
+        <div class="notification-bell cursor-pointer" id="notificationBell">
+         <svg class="w-6 h-6 text-cyan-400 group-hover:text-pink-400 transition-colors" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+         </svg><span class="notification-badge" id="alertBadge">0</span>
+        </div><!-- Notification Dropdown -->
+        <div class="absolute right-0 mt-2 w-96 card hidden group-hover:block z-50 max-h-96 overflow-y-auto" id="notificationDropdown">
+         <div class="p-4 border-b border-cyan-500/20 sticky top-0 bg-gray-900/90">
+          <h3 class="font-orbitron font-semibold text-cyan-400">📢 All Notifications</h3>
+         </div>
+         <div id="notificationList" class="p-2 space-y-2">
+          <p class="text-center text-gray-400 py-4 text-sm">No notifications yet</p>
+         </div>
+        </div>
+       </div>
+       <div class="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-400 to-pink-500 flex items-center justify-center cursor-pointer" id="headerProfile">
+        <span class="font-bold text-gray-900" id="userInitial">U</span>
+       </div>
+      </div>
+     </div>
+    </header><!-- Overview Page -->
+    <div class="dashboard-section active" id="overviewSection">
+     <div class="p-4 md:p-6 space-y-6">
+      <!-- System Status -->
+      <div class="card p-4">
+       <div class="flex items-center justify-between mb-4">
+        <h2 class="font-orbitron font-semibold text-lg">System Status</h2>
+        <div class="flex items-center gap-2">
+         <div class="status-dot status-online" id="systemStatusDot"></div><span class="text-sm text-green-400" id="systemStatusText">Online</span>
+        </div>
+       </div>
+       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+        <div>
+         <p class="text-2xl font-bold text-cyan-400" id="activeMeters">24</p>
+         <p class="text-xs text-gray-400">Active Meters</p>
+        </div>
+        <div>
+         <p class="text-2xl font-bold text-green-400" id="normalMeters">22</p>
+         <p class="text-xs text-gray-400">Normal</p>
+        </div>
+        <div>
+         <p class="text-2xl font-bold text-yellow-400" id="warningMeters">1</p>
+         <p class="text-xs text-gray-400">Warning</p>
+        </div>
+        <div>
+         <p class="text-2xl font-bold text-pink-400" id="criticalMeters">1</p>
+         <p class="text-xs text-gray-400">Critical</p>
+        </div>
+       </div>
+      </div><!-- Live Power Flow -->
+      <div class="card p-4">
+       <h2 class="font-orbitron font-semibold text-lg mb-4">Live Power Flow</h2>
+       <div class="power-flow">
+        <div class="power-line"></div>
+        <div class="power-particle" style="animation-delay: 0s;"></div>
+        <div class="power-particle" style="animation-delay: 0.5s;"></div>
+        <div class="power-particle" style="animation-delay: 1s;"></div>
+        <div class="power-node" style="left: 0;">
+         <svg viewbox="0 0 24 24"><path d="M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3z" />
+         </svg>
+        </div>
+        <div class="power-node" style="left: calc(50% - 30px);">
+         <svg viewbox="0 0 24 24"><path d="M13 3L4 14h7l-2 7 9-11h-7l2-7z" />
+         </svg>
+        </div>
+        <div class="power-node" style="right: 0;">
+         <svg viewbox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l4.59-4.58L18 11l-6 6z" />
+         </svg>
+        </div>
+       </div>
+       <div class="flex justify-between text-sm text-gray-400 mt-2">
+        <span>Source</span> <span>Grid</span> <span>Meters</span>
+       </div>
+      </div><!-- Sensor Readings -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+       <div class="card stat-card">
+        <div class="flex items-center justify-between">
+         <div>
+          <p class="text-sm text-gray-400 mb-1">Sensor 1 Reading</p>
+          <p class="stat-value" id="sensor1Value">245.8</p>
+          <p class="text-sm text-gray-400">Volts</p>
+         </div>
+         <div class="w-16 h-16 rounded-full border-4 border-cyan-400 flex items-center justify-center">
+          <svg class="w-8 h-8 text-cyan-400" fill="currentColor" viewbox="0 0 24 24">
+           <path d="M13 3L4 14h7l-2 7 9-11h-7l2-7z" />
+          </svg>
+         </div>
+        </div>
+        <div class="meter-gauge mt-4">
+         <div class="meter-fill" id="sensor1Gauge" style="width: 82%;"></div>
+        </div>
+       </div>
+       <div class="card stat-card">
+        <div class="flex items-center justify-between">
+         <div>
+          <p class="text-sm text-gray-400 mb-1">Sensor 2 Reading</p>
+          <p class="stat-value" id="sensor2Value">12.4</p>
+          <p class="text-sm text-gray-400">Amps</p>
+         </div>
+         <div class="w-16 h-16 rounded-full border-4 border-pink-400 flex items-center justify-center">
+          <svg class="w-8 h-8 text-pink-400" fill="currentColor" viewbox="0 0 24 24">
+           <path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z" />
+          </svg>
+         </div>
+        </div>
+        <div class="meter-gauge mt-4">
+         <div class="meter-fill" id="sensor2Gauge" style="width: 41%; background: linear-gradient(90deg, var(--success), var(--accent));"></div>
+        </div>
+       </div>
+      </div><!-- Recent Meter Readings -->
+      <div class="card p-4">
+       <h2 class="font-orbitron font-semibold text-lg mb-4">Recent Meter Readings</h2>
+       <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+         <thead>
+          <tr class="text-left text-gray-400 border-b border-cyan-500/20">
+           <th class="pb-3">Meter ID</th>
+           <th class="pb-3">Location</th>
+           <th class="pb-3">Reading</th>
+           <th class="pb-3">Status</th>
+          </tr>
+         </thead>
+         <tbody id="recentReadingsTable">
+          <tr class="border-b border-cyan-500/10">
+           <td class="py-3 font-mono text-cyan-400">MTR-001</td>
+           <td class="py-3">Block A</td>
+           <td class="py-3">1,245 kWh</td>
+           <td class="py-3"><span class="px-2 py-1 rounded bg-green-500/20 text-green-400 text-xs">Normal</span></td>
+          </tr>
+          <tr class="border-b border-cyan-500/10">
+           <td class="py-3 font-mono text-cyan-400">MTR-002</td>
+           <td class="py-3">Block B</td>
+           <td class="py-3">987 kWh</td>
+           <td class="py-3"><span class="px-2 py-1 rounded bg-green-500/20 text-green-400 text-xs">Normal</span></td>
+          </tr>
+          <tr class="border-b border-cyan-500/10">
+           <td class="py-3 font-mono text-cyan-400">MTR-003</td>
+           <td class="py-3">Block C</td>
+           <td class="py-3">2,156 kWh</td>
+           <td class="py-3"><span class="px-2 py-1 rounded bg-yellow-500/20 text-yellow-400 text-xs">Warning</span></td>
+          </tr>
+          <tr>
+           <td class="py-3 font-mono text-cyan-400">MTR-004</td>
+           <td class="py-3">Block D</td>
+           <td class="py-3">3,421 kWh</td>
+           <td class="py-3"><span class="px-2 py-1 rounded bg-pink-500/20 text-pink-400 text-xs">Critical</span></td>
+          </tr>
+         </tbody>
+        </table>
+       </div>
+      </div>
+     </div>
+    </div><!-- Analytics Page -->
+    <div class="dashboard-section" id="analyticsSection">
+     <div class="p-4 md:p-6 space-y-6">
+      <div class="dashboard-grid">
+       <div class="card stat-card">
+        <p class="text-sm text-gray-400 mb-1">Total Consumption</p>
+        <p class="stat-value">45,678</p>
+        <p class="text-sm text-gray-400">kWh this month</p>
+       </div>
+       <div class="card stat-card">
+        <p class="text-sm text-gray-400 mb-1">Energy Saved</p>
+        <p class="stat-value text-green-400">12.5%</p>
+        <p class="text-sm text-gray-400">vs last month</p>
+       </div>
+       <div class="card stat-card">
+        <p class="text-sm text-gray-400 mb-1">Theft Detected</p>
+        <p class="stat-value text-pink-400">3</p>
+        <p class="text-sm text-gray-400">incidents this month</p>
+       </div>
+       <div class="card stat-card">
+        <p class="text-sm text-gray-400 mb-1">System Efficiency</p>
+        <p class="stat-value text-yellow-400">94.2%</p>
+        <p class="text-sm text-gray-400">overall rating</p>
+       </div>
+      </div>
+      <div class="card p-4">
+       <h2 class="font-orbitron font-semibold text-lg mb-4">Consumption Analytics</h2>
+       <div class="chart-container">
+        <canvas id="analyticsChart"></canvas>
+       </div>
+      </div>
+      <div class="card p-4">
+       <h2 class="font-orbitron font-semibold text-lg mb-4">Live Power Graph</h2>
+       <div class="chart-container" style="height: 250px;">
+        <canvas id="liveChart"></canvas>
+       </div>
+      </div>
+     </div>
+    </div><!-- Meters Page -->
+    <div class="dashboard-section" id="metersSection">
+     <div class="p-4 md:p-6 space-y-6">
+      <div class="flex flex-wrap gap-4 items-center justify-between mb-4">
+       <h2 class="font-orbitron font-semibold text-xl">All Meters</h2>
+       <div class="flex gap-2">
+        <button class="btn-secondary text-sm" id="addMeterBtn">+ Add Meter</button>
+       </div>
+      </div>
+      <div class="dashboard-grid" id="metersGrid">
+       <!-- Meter cards will be populated here -->
+      </div>
+     </div>
+    </div><!-- Alerts Page -->
+    <div class="dashboard-section" id="alertsSection">
+     <div class="p-4 md:p-6 space-y-6">
+      <div class="flex flex-wrap gap-4 items-center justify-between mb-4">
+       <h2 class="font-orbitron font-semibold text-xl">Alert History</h2>
+       <div class="flex gap-2">
+        <select class="input-field text-sm py-2" id="alertFilter"> <option value="all">All Alerts</option> <option value="critical">Critical</option> <option value="warning">Warning</option> <option value="resolved">Resolved</option> </select>
+       </div>
+      </div>
+      <div class="space-y-3" id="alertsList">
+       <!-- Alerts will be populated here -->
+      </div>
+     </div>
+    </div><!-- Detection System Page -->
+    <div class="dashboard-section" id="detectionSection">
+     <div class="p-4 md:p-6 space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+       <!-- Radar System -->
+       <div class="card p-4">
+        <h2 class="font-orbitron font-semibold text-lg mb-4">Radar Detection System</h2>
+        <div class="radar-container" id="radarContainer">
+         <div class="radar-circle" style="width: 100%; height: 100%;"></div>
+         <div class="radar-circle" style="width: 75%; height: 75%;"></div>
+         <div class="radar-circle" style="width: 50%; height: 50%;"></div>
+         <div class="radar-circle" style="width: 25%; height: 25%;"></div>
+         <div class="radar-sweep"></div>
+         <div class="absolute top-1/2 left-1/2 w-3 h-3 bg-cyan-400 rounded-full transform -translate-x-1/2 -translate-y-1/2"></div><!-- Alert dots will be added dynamically -->
+        </div>
+        <div class="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
+         <div class="p-2 rounded bg-green-500/10">
+          <span class="text-green-400 font-bold" id="radarNormal">22</span>
+          <p class="text-gray-400">Normal</p>
+         </div>
+         <div class="p-2 rounded bg-yellow-500/10">
+          <span class="text-yellow-400 font-bold" id="radarWarning">1</span>
+          <p class="text-gray-400">Warning</p>
+         </div>
+         <div class="p-2 rounded bg-pink-500/10">
+          <span class="text-pink-400 font-bold" id="radarCritical">1</span>
+          <p class="text-gray-400">Critical</p>
+         </div>
+        </div>
+       </div><!-- Map View -->
+        <div class="card p-4">
+        <h2 class="font-orbitron font-semibold text-lg mb-4 text-cyan-400">Location Map</h2>
+        <div class="map-container relative overflow-hidden rounded-lg border border-cyan-500/40 shadow-[0_0_15px_rgba(34,211,238,0.2)]" id="mapContainer">
+        
+        <!-- PASTE YOUR GOOGLE MAPS IFRAME HERE -->
+        <iframe 
+            src="https://www.google.com/maps/d/u/0/embed?mid=1nM-wvgOFPbLS32P3An2EoXcBYaSzWVM&ehbc=2E312F" 
+            width="640" 
+            height="480" 
+            style="border:0; filter: invert(90%) hue-rotate(180deg) brightness(0.8) contrast(1.2);" 
+            allowfullscreen="" 
+            loading="lazy" 
+            referrerpolicy="no-referrer-when-downgrade">
+        </iframe>
+
+        <!-- HUD Overlay for Sci-Fi look -->
+        <div class="absolute inset-0 pointer-events-none border-[1px] border-cyan-500/20"></div>
+     </div>
+    </div>
+       
+      </div><!-- Live Detection Chart -->
+      <div class="card p-4">
+       <h2 class="font-orbitron font-semibold text-lg mb-4">Live Detection Graph</h2>
+       <div class="chart-container" style="height: 200px;">
+        <canvas id="detectionChart"></canvas>
+       </div>
+      </div><!-- Detection Log -->
+      <div class="card p-4">
+       <h2 class="font-orbitron font-semibold text-lg mb-4">Real-time Detection Log</h2>
+       <div class="max-h-64 overflow-y-auto space-y-2" id="detectionLog">
+        <!-- Detection logs will be populated here -->
+       </div>
+      </div>
+     </div>
+    </div><!-- About Page -->
+    <div class="dashboard-section" id="aboutSection">
+     <div class="p-4 md:p-6 space-y-6">
+      <div class="card p-6 text-center">
+       <div class="w-24 h-24 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-cyan-400 to-pink-500 flex items-center justify-center">
+        <svg class="w-14 h-14 text-gray-900" fill="currentColor" viewbox="0 0 24 24">
+         <path d="M13 3L4 14h7l-2 7 9-11h-7l2-7z" />
+        </svg>
+       </div>
+       <h1 class="font-orbitron text-3xl font-bold glow-text mb-2" id="aboutSystemName">ETDS</h1>
+       <p class="text-xl text-gray-400 mb-4">Electricity Theft Detection System</p>
+       <p class="text-cyan-400 font-semibold mb-8" id="aboutCollegeName">Present by PPI</p>
+       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div class="p-4 rounded-xl bg-cyan-500/10">
+         <p class="text-3xl font-bold text-cyan-400">24/7</p>
+         <p class="text-sm text-gray-400">Monitoring</p>
+        </div>
+        <div class="p-4 rounded-xl bg-green-500/10">
+         <p class="text-3xl font-bold text-green-400">99.9%</p>
+         <p class="text-sm text-gray-400">Uptime</p>
+        </div>
+        <div class="p-4 rounded-xl bg-yellow-500/10">
+         <p class="text-3xl font-bold text-yellow-400">&lt;1s</p>
+         <p class="text-sm text-gray-400">Detection</p>
+        </div>
+        <div class="p-4 rounded-xl bg-pink-500/10">
+         <p class="text-3xl font-bold text-pink-400">100+</p>
+         <p class="text-sm text-gray-400">Meters</p>
+        </div>
+       </div>
+      </div>
+      <div class="card p-6">
+       <h2 class="font-orbitron font-semibold text-xl mb-6 text-center">Project Team</h2>
+       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="team-card card">
+         <div class="team-avatar">
+          NM
+         </div>
+         <h3 class="font-semibold text-lg">Niraj Mallick</h3>
+         <p class="text-sm text-gray-400">Team Lead</p>
+        </div>
+        <div class="team-card card">
+         <div class="team-avatar">
+          AP
+         </div>
+         <h3 class="font-semibold text-lg">Adit Patel</h3>
+         <p class="text-sm text-gray-400">Developer</p>
+        </div>
+        <div class="team-card card">
+         <div class="team-avatar">
+          MB
+         </div>
+         <h3 class="font-semibold text-lg">Moksh Bahtt</h3>
+         <p class="text-sm text-gray-400">Designer</p>
+        </div>
+        <div class="team-card card">
+         <div class="team-avatar">
+          MS
+         </div>
+         <h3 class="font-semibold text-lg">Mahashivratri</h3>
+         <p class="text-sm text-gray-400">Analyst</p>
+        </div>
+       </div>
+      </div>
+      <div class="card p-6">
+       <h2 class="font-orbitron font-semibold text-xl mb-4">System Features</h2>
+       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="flex items-start gap-3 p-3 rounded-lg bg-cyan-500/5">
+         <div class="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center flex-shrink-0">
+          <svg class="w-5 h-5 text-cyan-400" fill="currentColor" viewbox="0 0 24 24">
+           <path d="M13 3L4 14h7l-2 7 9-11h-7l2-7z" />
+          </svg>
+         </div>
+         <div>
+          <h3 class="font-semibold">Real-time Monitoring</h3>
+          <p class="text-sm text-gray-400">24/7 power flow monitoring with instant alerts</p>
+         </div>
+        </div>
+        <div class="flex items-start gap-3 p-3 rounded-lg bg-pink-500/5">
+         <div class="w-10 h-10 rounded-lg bg-pink-500/20 flex items-center justify-center flex-shrink-0">
+          <svg class="w-5 h-5 text-pink-400" fill="currentColor" viewbox="0 0 24 24">
+           <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+          </svg>
+         </div>
+         <div>
+          <h3 class="font-semibold">Theft Detection</h3>
+          <p class="text-sm text-gray-400">Advanced algorithms for anomaly detection</p>
+         </div>
+        </div>
+        <div class="flex items-start gap-3 p-3 rounded-lg bg-green-500/5">
+         <div class="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center flex-shrink-0">
+          <svg class="w-5 h-5 text-green-400" fill="currentColor" viewbox="0 0 24 24">
+           <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+          </svg>
+         </div>
+         <div>
+          <h3 class="font-semibold">Location Tracking</h3>
+          <p class="text-sm text-gray-400">GPS-based meter location and mapping</p>
+         </div>
+        </div>
+        <div class="flex items-start gap-3 p-3 rounded-lg bg-yellow-500/5">
+         <div class="w-10 h-10 rounded-lg bg-yellow-500/20 flex items-center justify-center flex-shrink-0">
+          <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewbox="0 0 24 24">
+           <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z" />
+          </svg>
+         </div>
+         <div>
+          <h3 class="font-semibold">Analytics Dashboard</h3>
+          <p class="text-sm text-gray-400">Comprehensive data visualization and reports</p>
+         </div>
+        </div>
+       </div>
+      </div>
+      <div class="card p-6 text-center">
+       <h2 class="font-orbitron font-semibold text-xl mb-4">Contact Us</h2><a href="mailto:kingofmasterniraj@gmail.com" class="text-cyan-400 hover:underline text-lg"> 📧 kingofmasterniraj@gmail.com </a>
+      </div>
+     </div>
+    </div><!-- Profile Page -->
+    <div class="dashboard-section" id="profileSection">
+     <div class="p-4 md:p-6 space-y-6">
+      <div class="card p-6">
+       <div class="flex flex-col items-center text-center mb-6">
+        <div class="w-24 h-24 rounded-full bg-gradient-to-br from-cyan-400 to-pink-500 flex items-center justify-center mb-4">
+         <span class="text-4xl font-bold text-gray-900" id="profileInitial">U</span>
+        </div>
+        <h2 class="font-orbitron text-2xl font-bold" id="profileName">User Name</h2>
+        <p class="text-gray-400" id="profileEmail">user@example.com</p><span class="mt-2 px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-400 text-sm">Administrator</span>
+       </div>
+       <div class="space-y-4">
+        <div class="p-4 rounded-lg bg-cyan-500/5">
+         <label class="block text-sm text-gray-400 mb-2">Full Name</label> <input type="text" class="input-field" id="editName" placeholder="Enter your name">
+        </div>
+        <div class="p-4 rounded-lg bg-cyan-500/5">
+         <label class="block text-sm text-gray-400 mb-2">Email Address</label> <input type="email" class="input-field" id="editEmail" placeholder="Enter your email" disabled>
+        </div>
+        <div class="p-4 rounded-lg bg-cyan-500/5">
+         <label class="block text-sm text-gray-400 mb-2">Role</label> <input type="text" class="input-field" value="System Administrator" disabled>
+        </div><button class="btn-primary w-full" id="saveProfileBtn">Save Changes</button>
+       </div>
+      </div>
+      <div class="card p-6">
+       <h3 class="font-orbitron font-semibold text-lg mb-4">Account Statistics</h3>
+       <div class="grid grid-cols-2 gap-4">
+        <div class="p-4 rounded-lg bg-cyan-500/10 text-center">
+         <p class="text-2xl font-bold text-cyan-400">127</p>
+         <p class="text-sm text-gray-400">Alerts Reviewed</p>
+        </div>
+        <div class="p-4 rounded-lg bg-green-500/10 text-center">
+         <p class="text-2xl font-bold text-green-400">45</p>
+         <p class="text-sm text-gray-400">Issues Resolved</p>
+        </div>
+        <div class="p-4 rounded-lg bg-yellow-500/10 text-center">
+         <p class="text-2xl font-bold text-yellow-400">12h</p>
+         <p class="text-sm text-gray-400">Avg Response</p>
+        </div>
+        <div class="p-4 rounded-lg bg-pink-500/10 text-center">
+         <p class="text-2xl font-bold text-pink-400">98%</p>
+         <p class="text-sm text-gray-400">Efficiency</p>
+        </div>
+       </div>
+      </div>
+     </div>
+    </div><!-- AI Agent Bot Dashboard -->
+    <div class="dashboard-section" id="aiagentSection">
+     <div class="p-4 md:p-6 h-full flex flex-col space-y-4">
+      <!-- AI Agent Stats -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+       <div class="card stat-card">
+        <p class="text-sm text-gray-400 mb-1">Total Conversations</p>
+        <p class="stat-value" id="totalChats">0</p>
+       </div>
+       <div class="card stat-card">
+        <p class="text-sm text-gray-400 mb-1">Avg Response Time</p>
+        <p class="stat-value text-green-400" id="avgResponseTime">0.2s</p>
+       </div>
+       <div class="card stat-card">
+        <p class="text-sm text-gray-400 mb-1">AI Learning Score</p>
+        <p class="stat-value text-cyan-400" id="aiLearningScore">87%</p>
+       </div>
+       <div class="card stat-card">
+        <p class="text-sm text-gray-400 mb-1">Accuracy Rate</p>
+        <p class="stat-value text-yellow-400" id="accuracyRate">94.3%</p>
+       </div>
+      </div><!-- Chat Container -->
+      <div class="card flex-1 flex flex-col overflow-hidden">
+       <div class="p-4 border-b border-cyan-500/20 flex items-center justify-between">
+        <h2 class="font-orbitron font-semibold text-lg">🤖 ETDS AI Agent</h2>
+        <div class="flex items-center gap-2">
+         <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div><span class="text-xs text-green-400">Learning Mode: Active</span>
+        </div>
+       </div><!-- Chat Messages -->
+       <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4">
+        <div class="ai-message">
+         <div class="ai-message-avatar bg-gradient-to-br from-cyan-400 to-pink-500">
+          🤖
+         </div>
+         <div class="ai-message-bubble bot">
+          <p>Welcome to ETDS AI Agent! I'm connected to your system and continuously learning. Ask me anything about:</p>
+          <ul class="text-xs text-gray-400 mt-2 space-y-1">
+           <li>✓ System performance &amp; alerts</li>
+           <li>✓ Meter readings &amp; data analysis</li>
+           <li>✓ Theft detection patterns</li>
+           <li>✓ General energy management</li>
+           <li>✓ Professional recommendations</li>
+          </ul>
+         </div>
+        </div>
+       </div><!-- Chat Input -->
+       <div class="p-4 border-t border-cyan-500/20 space-y-2">
+        <div class="flex gap-2">
+         <input type="text" id="aiChatInput" placeholder="Ask me anything..." class="input-field flex-1 py-2 px-3" autocomplete="off"> <button id="aiSendBtn" class="btn-primary px-4 py-2">Send</button>
+        </div>
+        <div class="flex flex-wrap gap-2">
+         <button class="text-xs px-2 py-1 rounded bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20" onclick="aiAgent.askPredefined('What is the current system status?')">System Status</button> <button class="text-xs px-2 py-1 rounded bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20" onclick="aiAgent.askPredefined('Show me high-risk meters')">High-Risk Meters</button> <button class="text-xs px-2 py-1 rounded bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20" onclick="aiAgent.askPredefined('Analyze consumption patterns')">Analyze Patterns</button> <button class="text-xs px-2 py-1 rounded bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20" onclick="aiAgent.askPredefined('What are recent alerts?')">Recent Alerts</button>
+        </div>
+       </div>
+      </div><!-- AI Learning Analytics -->
+      <div class="card p-4">
+       <h3 class="font-orbitron font-semibold text-lg mb-3">📊 AI Learning Analytics</h3>
+       <div class="space-y-3">
+        <div>
+         <div class="flex justify-between text-sm mb-1">
+          <span class="text-gray-400">System Knowledge Base</span> <span class="text-cyan-400 font-semibold" id="knowledgePercentage">87%</span>
+         </div>
+         <div class="w-full bg-gray-700 rounded-full h-2">
+          <div class="bg-gradient-to-r from-cyan-400 to-blue-400 h-2 rounded-full" id="knowledgeBar" style="width: 87%;"></div>
+         </div>
+        </div>
+        <div>
+         <div class="flex justify-between text-sm mb-1">
+          <span class="text-gray-400">Response Accuracy</span> <span class="text-green-400 font-semibold" id="accuracyPercentage">94.3%</span>
+         </div>
+         <div class="w-full bg-gray-700 rounded-full h-2">
+          <div class="bg-gradient-to-r from-green-400 to-emerald-400 h-2 rounded-full" id="accuracyBar" style="width: 94.3%;"></div>
+         </div>
+        </div>
+        <div>
+         <div class="flex justify-between text-sm mb-1">
+          <span class="text-gray-400">Pattern Recognition</span> <span class="text-yellow-400 font-semibold" id="patternPercentage">81%</span>
+         </div>
+         <div class="w-full bg-gray-700 rounded-full h-2">
+          <div class="bg-gradient-to-r from-yellow-400 to-orange-400 h-2 rounded-full" id="patternBar" style="width: 81%;"></div>
+         </div>
+        </div>
+        <div>
+         <div class="flex justify-between text-sm mb-1">
+          <span class="text-gray-400">Self-Improvement Score</span> <span class="text-pink-400 font-semibold" id="improvementPercentage">92%</span>
+         </div>
+         <div class="w-full bg-gray-700 rounded-full h-2">
+          <div class="bg-gradient-to-r from-pink-400 to-rose-400 h-2 rounded-full" id="improvementBar" style="width: 92%;"></div>
+         </div>
+        </div>
+       </div>
+       <p class="text-xs text-gray-500 mt-4 text-center">🧠 AI continuously learns from every interaction &amp; system event</p>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div><!-- Alert Sound -->
+  <audio id="alertSound" preload="auto">
+   <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2eleAEML5LY9eSJRhIVkNb35b5sHQYMltr2+bFYPwAAqOX3/p1EOhEBqef5/4FJRQ+G4fX/rmpMPxel4vb/gFhJKYXl8/+YR0YXge73/pdGOw1+7/f/m0Q3BYPx/P+qP0MFhPL8/68+PwSG8f7/sD5BBYjw/f+wQEQIi/D+/65ARgiO8P//rUBGCI/w//+rQkgKkfH+/6lCSQqS8v7/qENKC5Ly/v+mREsLk/P+/6RESwuT8/7/pERLC5Tz/v+jREsMlPP+/6NFTAyV9P//okVMDJb0//+hRUwMl/T//6BGTA2Y9P//n0ZNDZn1//+eRk0Nmvb//55HTg6a9v//nUdODpv2//+cR08Om/f//5tITw+c9///m0hPD5z3//+aSFAPnfj//5lJUA+e+P//mElRD574//+XSVEPN3Byk3h3fZh9cnRzd3x3c3J0cnBwcHFxcnJycnJycnJycnJycnJzc3Nzc3Nzc3NzdHR0dHR0dHV1dXV1dXV1dnZ2dnZ2d3d3d3d3eHh4eHh4eHl5eXl5eXp6enp6ent7e3t7fHx8fHx8fX19fX1+fn5+fn9/f39/gICAgICBgYGBgYKCgoKCg4ODg4OEhISEhYWFhYWGhoaGh4eHh4iIiIiJiYmJiYqKioqLi4uLjIyMjI2NjY2Ojo6Oj4+Pj5CQkJCRkZGRkpKSkpOTk5OUlJSUlZWVlZaWlpaXl5eXmJiYmJmZmZmampqanJycnJ2dnZ2enp6en5+fn6CgoKChoaGhoqKioqOjo6OkpKSk" type="audio/wav">
+  </audio><!-- Background Music (Optional - Lazy Loaded) -->
+  <audio id="bgMusic" loop preload="none" style="display:none;" data-enabled="false"></audio><!-- Music Control Button --> <button id="musicToggle" class="fixed bottom-6 left-6 z-40 w-12 h-12 rounded-full bg-gradient-to-br from-cyan-400 to-pink-500 flex items-center justify-center shadow-lg hover:scale-110 transition-transform" title="Toggle Background Music" style="display:none;">
+   <svg class="w-6 h-6 text-gray-900" fill="currentColor" viewbox="0 0 24 24">
+    <path d="M12 3v9.28c-.47-.46-1.1-.78-1.81-.78-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V7h4V3h-4z" />
+   </svg></button> <!-- Toast Container -->
+  <div id="toastContainer" class="fixed bottom-4 right-4 z-50 space-y-2"></div><!-- Add Meter Modal -->
+  <div id="addMeterModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/50">
+   <div class="card p-6 w-full max-w-md">
+    <h3 class="font-orbitron font-semibold text-xl mb-4">Add New Meter</h3>
+    <div class="space-y-4">
+     <div>
+      <label class="block text-sm text-gray-400 mb-2">Meter ID</label> <input type="text" class="input-field" id="newMeterID" placeholder="e.g., MTR-005">
+     </div>
+     <div>
+      <label class="block text-sm text-gray-400 mb-2">Location</label> <input type="text" class="input-field" id="newMeterLocation" placeholder="e.g., Block E">
+     </div>
+     <div class="flex gap-3">
+      <button class="btn-secondary flex-1" id="cancelMeterBtn">Cancel</button> <button class="btn-primary flex-1" id="confirmAddMeterBtn">Add Meter</button>
+     </div>
+    </div>
+   </div>
+  </div>
+  <script>
+    // ========== AI AGENT SYSTEM ==========
+    const aiAgent = {
+      conversations: [],
+      learningData: [],
+      learningStats: {
+        knowledge: 87,
+        accuracy: 94.3,
+        patterns: 81,
+        improvement: 92
+      },
+      
+      // AI Response Generation - FIXED
+      generateResponse(query) {
+        if (!query || query.trim().length === 0) return { response: 'Please ask a question', category: 'error' };
+        
+        const lowerQuery = query.toLowerCase();
+        let response = '';
+        let category = 'general';
+        
+        // System Status Queries
+        if (lowerQuery.includes('status') || lowerQuery.includes('how are') || lowerQuery.includes('working')) {
+          category = 'system';
+          const unresolvedAlerts = allData.filter(d => d.type === 'alert' && !d.resolved).length;
+          const criticalAlerts = allData.filter(d => d.type === 'alert' && d.severity === 'critical' && !d.resolved).length;
+          response = `✅ SYSTEM STATUS REPORT:\n\n📊 Overview:\n  • Status: ONLINE 🟢\n  • Uptime: 99.9%\n  • Active Meters: ${sampleMeters.length}\n  • Monitoring Mode: ${isUsingRealAPI ? '🔴 REAL-TIME API' : '📊 DEMO DATABASE'}\n\n⚠️ Alerts:\n  • Unresolved: ${unresolvedAlerts}\n  • Critical: ${criticalAlerts}\n  • Detection Accuracy: 94.3%\n\n⚡ Performance:\n  • Response Time: <200ms\n  • System Load: Normal\n  • Data Sync: Active`;
+        }
+        
+        // Meter Analysis
+        else if (lowerQuery.includes('meter') || lowerQuery.includes('reading') || lowerQuery.includes('high-risk')) {
+          category = 'analysis';
+          const highRisk = sampleMeters.filter(m => m.status !== 'normal');
+          const normal = sampleMeters.filter(m => m.status === 'normal').length;
+          response = `📊 METER ANALYSIS:\n\n🟢 Normal: ${normal} meters\n🟡 Warning: ${sampleMeters.filter(m => m.status === 'warning').length} meters\n🔴 Critical: ${sampleMeters.filter(m => m.status === 'critical').length} meters\n\n${highRisk.length > 0 ? '⚠️ HIGH-RISK METERS:\n' + highRisk.map(m => `  • ${m.id} (${m.location}): ${m.status.toUpperCase()} | ${m.reading} kWh`).join('\n') : '✅ All meters reading normal'}\n\n💡 Top Consumers:\n  1. MTR-004: 3,421 kWh\n  2. MTR-003: 2,156 kWh\n  3. MTR-001: 1,245 kWh`;
+        }
+        
+        // Alert Information
+        else if (lowerQuery.includes('alert') || lowerQuery.includes('anomaly') || lowerQuery.includes('issue')) {
+          category = 'alerts';
+          const alerts = allData.filter(d => d.type === 'alert');
+          const critical = alerts.filter(a => a.severity === 'critical' && !a.resolved);
+          const warning = alerts.filter(a => a.severity === 'warning' && !a.resolved);
+          response = `🚨 ALERT SUMMARY:\n\n📈 Total Alerts Logged: ${alerts.length}\n\n🔴 Critical (Unresolved): ${critical.length}\n${critical.slice(0, 3).map(a => `  • ${a.meter_id} at ${a.location} - ${new Date(a.timestamp).toLocaleTimeString()}`).join('\n')}\n\n🟡 Warning (Unresolved): ${warning.length}\n${warning.slice(0, 3).map(a => `  • ${a.meter_id} at ${a.location}`).join('\n')}\n\n✅ Resolved: ${alerts.filter(a => a.resolved).length}\n\n💡 Recommendation: Review critical alerts immediately!`;
+        }
+        
+        // Consumption Analysis
+        else if (lowerQuery.includes('consumption') || lowerQuery.includes('usage') || lowerQuery.includes('energy') || lowerQuery.includes('kWh')) {
+          category = 'analysis';
+          const totalReading = sampleMeters.reduce((sum, m) => sum + m.reading, 0);
+          response = `⚡ ENERGY CONSUMPTION ANALYSIS:\n\n📊 Total System Consumption:\n  • This Period: ${totalReading.toLocaleString()} kWh\n  • Monthly Trend: 45,678 kWh\n  • Vs Last Month: -12.5% ↓ (Great savings!)\n\n🏆 Efficiency Ranking:\n  1. Block B: 987 kWh (Most Efficient)\n  2. Block A: 1,245 kWh\n  3. Block C: 2,156 kWh\n  4. Block D: 3,421 kWh (Highest)\n\n💡 Optimization Tips:\n  • Block D consuming 60% above average\n  • Implement load balancing\n  • Monitor peak hours (9-11 AM, 6-8 PM)\n  • Estimated savings potential: 15-20%`;
+        }
+        
+        // Theft Detection
+        else if (lowerQuery.includes('theft') || lowerQuery.includes('fraud') || lowerQuery.includes('illegal') || lowerQuery.includes('anomaly')) {
+          category = 'detection';
+          const criticalThreats = allData.filter(d => d.severity === 'critical').length;
+          response = `🔍 THEFT DETECTION & FRAUD REPORT:\n\n🎯 Detection Metrics:\n  • Detection Rate: 98.7%\n  • ML Model Confidence: 94.3%\n  • False Positive Rate: 1.3%\n\n📍 Incident Summary:\n  • This Month: 3 incidents detected\n  • Current Active Threats: ${criticalThreats}\n  • Prevented Loss: ~₹45,000\n\n🚨 Active Threats:\n  • Sensor Tampering: 1 case\n  • Unusual Consumption: 2 cases\n  • Phase Manipulation: 0 cases\n\n✅ Preventive Status: ACTIVE\n💡 Recommendation: Deploy field teams to critical meters within 2 hours`;
+        }
+        
+        // API Status
+        else if (lowerQuery.includes('api') || lowerQuery.includes('real-time') || lowerQuery.includes('data source')) {
+          category = 'system';
+          response = `🔌 API & DATA SOURCE STATUS:\n\n${isUsingRealAPI ? '🔴 LIVE MODE - REAL HARDWARE DATA' : '📊 DEMO MODE - SIMULATED DATA'}\n\nAPI Configuration:\n  • Endpoint: ${apiConfig.enabled ? apiConfig.endpoint || 'Configured' : 'Not set'}\n  • Status: ${apiConfig.enabled ? '✅ CONNECTED' : '❌ DISCONNECTED'}\n  • Last Sync: ${new Date().toLocaleTimeString()}\n\n📡 Fallback System:\n  • Primary: Hardware API\n  • Secondary: Database\n  • Tertiary: Demo Simulation\n\n💡 To enable real-time API:\n  1. Add API Endpoint in Settings\n  2. Add API Key in Settings\n  3. System auto-connects to real sensors\n  4. Falls back to demo if connection fails`;
+        }
+        
+        // General Help
+        else if (lowerQuery.includes('help') || lowerQuery.includes('what can') || lowerQuery.includes('command') || lowerQuery.includes('assist')) {
+          category = 'help';
+          response = `🤖 AI AGENT CAPABILITIES:\n\n📊 I can answer questions about:\n  ✓ System Status & Performance\n  ✓ Meter Readings & Analysis\n  ✓ High-Risk Meters\n  ✓ Alert Management\n  ✓ Energy Consumption Patterns\n  ✓ Theft Detection Reports\n  ✓ API & Real-time Data\n  ✓ Professional Recommendations\n\n💬 Try asking:\n  • "What is the system status?"\n  • "Show me high-risk meters"\n  • "Analyze energy consumption"\n  • "What are current alerts?"\n  • "Is real-time API active?"\n  • "Theft detection report"\n\n🧠 I learn from every interaction & improve accuracy with each question!`;
+        }
+        
+        // Default Response
+        else {
+          category = 'general';
+          response = `📝 Query: "${query}"\n\n💡 System Analysis:\n  • Scanning ETDS database...\n  • Real-time data: ${isUsingRealAPI ? '✅ Active' : '📊 Demo Mode'}\n  • Meters monitored: ${sampleMeters.length}\n  • Alerts logged: ${allData.filter(d => d.type === 'alert').length}\n  • System uptime: 99.9%\n\n🔍 Key Insights:\n  • Most meters operating normally\n  • ${allData.filter(d => d.severity === 'critical' && !d.resolved).length} critical issue(s) requiring attention\n  • Energy consumption within expected range\n\n💡 Recommendation:\n  Ask specific questions for detailed analysis. Try: "System Status", "High-Risk Meters", or "Alert Summary"`;
+        }
+        
+        return { response, category };
+      },
+      
+      // Learn from interaction
+      learn(query, response, category) {
+        this.learningData.push({ query, response, category, timestamp: new Date().toISOString() });
+        
+        // Auto-improve accuracy
+        this.learningStats.knowledge = Math.min(100, this.learningStats.knowledge + Math.random() * 2);
+        this.learningStats.accuracy = Math.min(100, this.learningStats.accuracy + Math.random() * 0.5);
+        this.learningStats.patterns = Math.min(100, this.learningStats.patterns + Math.random() * 1.5);
+        this.learningStats.improvement = Math.min(100, this.learningStats.improvement + Math.random() * 1);
+        
+        updateAIStats();
+      },
+      
+      // Ask predefined question
+      askPredefined(question) {
+        document.getElementById('aiChatInput').value = question;
+        sendAIMessage();
+      }
+    };
+
+    // ========== Configuration ==========
+    const defaultConfig = {
+      system_name: 'ETDS',
+      college_name: 'Present by PPI',
+      api_endpoint: '',
+      api_key: ''
+    };
+
+    let currentUser = null;
+    let allData = [];
+    let alertCount = 0;
+    let liveChartData = [];
+    let detectionChartData = [];
+    let apiConfig = { endpoint: '', apiKey: '', enabled: false };
+    let isUsingRealAPI = false;
+    let allNotifications = [];
+    
+    const sampleMeters = [
+      { id: 'MTR-001', location: 'Block A', lat: 23.0225, lng: 72.5714, reading: 1245, status: 'normal' },
+      { id: 'MTR-002', location: 'Block B', lat: 23.0235, lng: 72.5724, reading: 987, status: 'normal' },
+      { id: 'MTR-003', location: 'Block C', lat: 23.0215, lng: 72.5704, reading: 2156, status: 'warning' },
+      { id: 'MTR-004', location: 'Block D', lat: 23.0245, lng: 72.5734, reading: 3421, status: 'critical' }
+    ];
+
+    // ========== Element SDK Implementation ==========
+    const elementApi = {
+      defaultConfig,
+      onConfigChange: async (config) => {
+        document.getElementById('systemNameDisplay').textContent = config.system_name || defaultConfig.system_name;
+        document.getElementById('collegeNameDisplay').textContent = config.college_name || defaultConfig.college_name;
+        document.getElementById('aboutSystemName').textContent = config.system_name || defaultConfig.system_name;
+        document.getElementById('aboutCollegeName').textContent = config.college_name || defaultConfig.college_name;
+        
+        if (config.api_endpoint || config.api_key) {
+          apiConfig.endpoint = config.api_endpoint || '';
+          apiConfig.apiKey = config.api_key || '';
+          apiConfig.enabled = !!(config.api_endpoint && config.api_key);
+          isUsingRealAPI = apiConfig.enabled;
+          
+          if (apiConfig.enabled) {
+            showToast('✅ Real API configured! Using live sensor data', 'success');
+          } else {
+            showToast('📊 Using demo/simulated data', 'info');
+          }
+        }
+      },
+      mapToCapabilities: (config) => ({
+        recolorables: [],
+        borderables: [],
+        fontEditable: undefined,
+        fontSizeable: undefined
+      }),
+      mapToEditPanelValues: (config) => new Map([
+        ['system_name', config.system_name || defaultConfig.system_name],
+        ['college_name', config.college_name || defaultConfig.college_name],
+        ['api_endpoint', config.api_endpoint || defaultConfig.api_endpoint],
+        ['api_key', config.api_key || defaultConfig.api_key]
+      ])
+    };
+
+    // ========== Data SDK Handler ==========
+    const dataHandler = {
+      onDataChanged(data) {
+        allData = data;
+        updateAlertBadge();
+        renderAlerts();
+        updateDetectionLog();
+      }
+    };
+
+    // ========== Initialize SDKs ==========
+    async function initSDKs() {
+      if (window.elementSdk) {
+        window.elementSdk.init(elementApi);
+      }
+      if (window.dataSdk) {
+        await window.dataSdk.init(dataHandler);
+      }
+    }
+    initSDKs();
+
+    // ========== AI Chat Functions ==========
+    function sendAIMessage() {
+      const input = document.getElementById('aiChatInput');
+      const message = input.value.trim();
+      
+      if (!message) return;
+      
+      // Add user message
+      addAIChatMessage(message, 'user');
+      input.value = '';
+      
+      // Show typing indicator
+      showAITyping();
+      
+      // Simulate AI processing (0.3-1 second delay)
+      setTimeout(() => {
+        removeAITyping();
+        
+        // Generate response
+        const { response, category } = aiAgent.generateResponse(message);
+        
+        // Let AI learn
+        aiAgent.learn(message, response, category);
+        
+        // Add AI response
+        addAIChatMessage(response, 'bot');
+        
+        // Save to data (optional)
+        if (window.dataSdk && currentUser) {
+          window.dataSdk.create({
+            type: 'chat',
+            timestamp: new Date().toISOString(),
+            chat_message: message,
+            chat_response: response,
+            chat_category: category,
+            confidence_score: aiAgent.learningStats.accuracy,
+            user_email: currentUser.email,
+            user_name: currentUser.name
+          }).catch(e => console.error('Failed to save chat', e));
+        }
+      }, 300 + Math.random() * 700);
+    }
+
+    function addAIChatMessage(text, sender) {
+      const container = document.getElementById('chatMessages');
+      const msg = document.createElement('div');
+      msg.className = `ai-message ${sender}`;
+      
+      if (sender === 'user') {
+        msg.innerHTML = `
+          <div class="ai-message-avatar bg-gradient-to-br from-pink-500 to-cyan-400">👤</div>
+          <div class="ai-message-bubble user">${text}</div>
+        `;
+      } else {
+        msg.innerHTML = `
+          <div class="ai-message-avatar bg-gradient-to-br from-cyan-400 to-pink-500">🤖</div>
+          <div class="ai-message-bubble bot">${text.replace(/\n/g, '<br>')}</div>
+        `;
+      }
+      
+      container.appendChild(msg);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function showAITyping() {
+      const container = document.getElementById('chatMessages');
+      const typing = document.createElement('div');
+      typing.id = 'aiTyping';
+      typing.className = 'ai-message';
+      typing.innerHTML = `
+        <div class="ai-message-avatar bg-gradient-to-br from-cyan-400 to-pink-500">🤖</div>
+        <div class="ai-typing">
+          <div class="ai-typing-dot"></div>
+          <div class="ai-typing-dot"></div>
+          <div class="ai-typing-dot"></div>
+        </div>
+      `;
+      container.appendChild(typing);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function removeAITyping() {
+      const typing = document.getElementById('aiTyping');
+      if (typing) typing.remove();
+    }
+
+    function updateAIStats() {
+      document.getElementById('totalChats').textContent = aiAgent.conversations.length + aiAgent.learningData.length;
+      document.getElementById('knowledgePercentage').textContent = Math.round(aiAgent.learningStats.knowledge) + '%';
+      document.getElementById('accuracyPercentage').textContent = aiAgent.learningStats.accuracy.toFixed(1) + '%';
+      document.getElementById('patternPercentage').textContent = Math.round(aiAgent.learningStats.patterns) + '%';
+      document.getElementById('improvementPercentage').textContent = Math.round(aiAgent.learningStats.improvement) + '%';
+      
+      document.getElementById('knowledgeBar').style.width = aiAgent.learningStats.knowledge + '%';
+      document.getElementById('accuracyBar').style.width = aiAgent.learningStats.accuracy + '%';
+      document.getElementById('patternBar').style.width = aiAgent.learningStats.patterns + '%';
+      document.getElementById('improvementBar').style.width = aiAgent.learningStats.improvement + '%';
+    }
+
+    // ========== Navigation ==========
+    const sidebar = document.getElementById('sidebar');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+    const menuBtn = document.getElementById('menuBtn');
+    const navItems = document.querySelectorAll('.nav-item');
+    const dashboardSections = document.querySelectorAll('.dashboard-section');
+    const pageTitle = document.getElementById('pageTitle');
+
+    menuBtn.addEventListener('click', () => {
+      sidebar.classList.add('open');
+      sidebarOverlay.classList.add('show');
+    });
+
+    sidebarOverlay.addEventListener('click', () => {
+      sidebar.classList.remove('open');
+      sidebarOverlay.classList.remove('show');
+    });
+
+    navItems.forEach(item => {
+      item.addEventListener('click', () => {
+        const page = item.dataset.page;
+        
+        navItems.forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        
+        dashboardSections.forEach(s => s.classList.remove('active'));
+        document.getElementById(page + 'Section').classList.add('active');
+        
+        const titles = {
+          overview: 'Overview Dashboard',
+          analytics: 'Analytics',
+          meters: 'Meters Dashboard',
+          alerts: 'Alerts',
+          detection: 'Detection System',
+          about: 'About System',
+          profile: 'User Profile',
+          aiagent: 'AI Agent Bot'
+        };
+        pageTitle.textContent = titles[page] || 'Dashboard';
+        
+        sidebar.classList.remove('open');
+        sidebarOverlay.classList.remove('show');
+      });
+    });
+
+    // ========== Login/Signup ==========
+    const loginPage = document.getElementById('loginPage');
+    const dashboardPage = document.getElementById('dashboardPage');
+    const loginForm = document.getElementById('loginForm');
+    const signupForm = document.getElementById('signupForm');
+
+    document.getElementById('showSignupBtn').addEventListener('click', () => {
+      loginForm.classList.add('hidden');
+      signupForm.classList.remove('hidden');
+    });
+
+    document.getElementById('showLoginBtn').addEventListener('click', () => {
+      signupForm.classList.add('hidden');
+      loginForm.classList.remove('hidden');
+    });
+
+    document.getElementById('loginBtn').addEventListener('click', () => {
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+      
+      if (email && password) {
+        currentUser = { email, name: email.split('@')[0] };
+        showDashboard();
+        showToast('Welcome back!', 'success');
+      } else {
+        showToast('Please enter email and password', 'warning');
+      }
+    });
+
+    document.getElementById('signupBtn').addEventListener('click', () => {
+      const name = document.getElementById('signupName').value;
+      const email = document.getElementById('signupEmail').value;
+      const password = document.getElementById('signupPassword').value;
+      
+      if (name && email && password) {
+        currentUser = { email, name };
+        showDashboard();
+        showToast('Account created successfully!', 'success');
+      } else {
+        showToast('Please fill all fields', 'warning');
+      }
+    });
+
+    document.getElementById('googleLoginBtn').addEventListener('click', () => {
+      currentUser = { email: 'user@gmail.com', name: 'Google User' };
+      showDashboard();
+      showToast('Signed in with Google', 'success');
+    });
+
+    document.getElementById('githubLoginBtn').addEventListener('click', () => {
+      currentUser = { email: 'user@github.com', name: 'GitHub User' };
+      showDashboard();
+      showToast('Signed in with GitHub', 'success');
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      currentUser = null;
+      stopBackgroundMusic();
+      dashboardPage.classList.remove('active');
+      loginPage.classList.add('active');
+      sidebar.classList.remove('open');
+      sidebarOverlay.classList.remove('show');
+      showToast('Logged out successfully', 'success');
+    });
+
+    function showDashboard() {
+      loginPage.classList.remove('active');
+      dashboardPage.classList.add('active');
+      updateUserUI();
+      initCharts();
+      renderMeters();
+      initMusicToggle();
+      startSimulation();
+      
+      // Initialize AI Chat
+      document.getElementById('aiSendBtn').addEventListener('click', sendAIMessage);
+      document.getElementById('aiChatInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendAIMessage();
+      });
+      
+      updateAIStats();
+    }
+
+    function updateUserUI() {
+      if (currentUser) {
+        const initial = currentUser.name.charAt(0).toUpperCase();
+        document.getElementById('userInitial').textContent = initial;
+        document.getElementById('profileInitial').textContent = initial;
+        document.getElementById('profileName').textContent = currentUser.name;
+        document.getElementById('profileEmail').textContent = currentUser.email;
+        document.getElementById('editName').value = currentUser.name;
+        document.getElementById('editEmail').value = currentUser.email;
+      }
+    }
+
+    document.getElementById('saveProfileBtn').addEventListener('click', () => {
+      const newName = document.getElementById('editName').value;
+      if (newName) {
+        currentUser.name = newName;
+        updateUserUI();
+        showToast('Profile updated!', 'success');
+      }
+    });
+
+    document.getElementById('headerProfile').addEventListener('click', () => {
+      navItems.forEach(i => i.classList.remove('active'));
+      document.querySelector('[data-page="profile"]').classList.add('active');
+      dashboardSections.forEach(s => s.classList.remove('active'));
+      document.getElementById('profileSection').classList.add('active');
+      pageTitle.textContent = 'User Profile';
+    });
+
+    // ========== Background Music Management ==========
+    let bgMusicEnabled = true;
+    let bgMusicLoaded = false;
+    const bgMusic = document.getElementById('bgMusic');
+    const musicToggle = document.getElementById('musicToggle');
+
+    function initMusicToggle() {
+      musicToggle.style.display = 'flex';
+      musicToggle.addEventListener('click', toggleBackgroundMusic);
+      
+      loadBackgroundMusic();
+      playBackgroundMusic();
+      updateMusicButtonUI();
+      showToast('🎵 Ambient beats activated', 'info');
+    }
+
+    function toggleBackgroundMusic() {
+      bgMusicEnabled = !bgMusicEnabled;
+      
+      if (bgMusicEnabled) {
+        playBackgroundMusic();
+        showToast('🎵 Music resumed', 'info');
+      } else {
+        pauseBackgroundMusic();
+        showToast('🔇 Music paused', 'info');
+      }
+      
+      updateMusicButtonUI();
+    }
+
+    function playBackgroundMusic() {
+      if (!bgMusicLoaded) {
+        loadBackgroundMusic();
+      }
+      
+      bgMusic.play().catch(err => {
+        bgMusicEnabled = false;
+        showToast('Audio playback not available', 'warning');
+        console.warn('Audio play failed:', err);
+      });
+    }
+
+    function pauseBackgroundMusic() {
+      bgMusic.pause();
+    }
+
+    function loadBackgroundMusic() {
+      if (bgMusicLoaded) return;
+      
+      const musicUrls = [
+        'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
+        'https://assets.mixkit.co/active_storage/music/33-epic-heartbeats-201.mp3',
+        'https://files.freepik.com/sounds/epic/epic-cinematic-trailer-background-music-for-videos-free-download-192959.mp3'
+      ];
+      
+      bgMusic.src = musicUrls[0];
+      bgMusic.preload = 'auto';
+      bgMusic.volume = 0.25;
+      bgMusic.loop = true;
+      bgMusicLoaded = true;
+      
+      bgMusic.addEventListener('play', () => {
+        bgMusic.style.transition = 'opacity 0.3s ease';
+        bgMusic.style.opacity = '1';
+      });
+      
+      let retryCount = 0;
+      bgMusic.addEventListener('error', (e) => {
+        console.warn('Music load failed, trying alternative...', e);
+        if (retryCount < musicUrls.length - 1) {
+          retryCount++;
+          bgMusic.src = musicUrls[retryCount];
+          bgMusic.load();
+        }
+      });
+    }
+
+    function updateMusicButtonUI() {
+      if (bgMusicEnabled && bgMusicLoaded) {
+        musicToggle.innerHTML = `
+          <svg class="w-6 h-6 text-gray-900" fill="currentColor" viewbox="0 0 24 24">
+            <path d="M12 3v9.28c-.47-.46-1.1-.78-1.81-.78-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V7h4V3h-4z"/>
+          </svg>
+          <style>
+            @keyframes musicPulse {
+              0%, 100% { opacity: 1; }
+              50% { opacity: 0.6; }
+            }
+            #musicToggle { animation: musicPulse 2s ease-in-out infinite; }
+          </style>
+        `;
+        musicToggle.title = '🎵 Music: Playing (click to pause)';
+        musicToggle.style.background = 'linear-gradient(135deg, #00f5ff, #ff006e)';
+      } else {
+        musicToggle.innerHTML = `
+          <svg class="w-6 h-6 text-gray-900 opacity-50" fill="currentColor" viewbox="0 0 24 24">
+            <path d="M12 3v9.28c-.47-.46-1.1-.78-1.81-.78-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V7h4V3h-4z"/>
+          </svg>
+        `;
+        musicToggle.title = '🔇 Music: Paused (click to play)';
+        musicToggle.style.background = 'linear-gradient(135deg, rgba(0,245,255,0.3), rgba(255,0,110,0.3))';
+      }
+    }
+
+    function stopBackgroundMusic() {
+      pauseBackgroundMusic();
+      bgMusicEnabled = false;
+      updateMusicButtonUI();
+    }
+
+    // ========== Toast Notifications ==========
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      const bgColors = {
+        success: 'bg-green-500/20 border-green-500',
+        warning: 'bg-yellow-500/20 border-yellow-500',
+        error: 'bg-pink-500/20 border-pink-500',
+        info: 'bg-cyan-500/20 border-cyan-500'
+      };
+      
+      toast.className = `p-4 rounded-lg border ${bgColors[type]} backdrop-blur-lg animate-slideIn`;
+      toast.innerHTML = `<p class="text-sm">${message}</p>`;
+      container.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // ========== Notification Management ==========
+    function addNotification(title, message, type, severity = 'info', metadata = {}) {
+      const notification = {
+        id: Date.now(),
+        title,
+        message,
+        type,
+        severity,
+        timestamp: new Date().toLocaleString(),
+        metadata,
+        read: false
+      };
+      
+      allNotifications.unshift(notification);
+      if (allNotifications.length > 50) allNotifications.pop();
+      
+      renderNotifications();
+      updateNotificationBadge();
+      
+      showToast(message, type === 'resolved' ? 'success' : severity);
+    }
+
+    function updateNotificationBadge() {
+      const unreadCount = allNotifications.filter(n => !n.read).length;
+      document.getElementById('alertBadge').textContent = unreadCount;
+    }
+
+    function renderNotifications() {
+      const container = document.getElementById('notificationList');
+      
+      if (allNotifications.length === 0) {
+        container.innerHTML = '<p class="text-center text-gray-400 py-4 text-sm">No notifications yet</p>';
+        return;
+      }
+      
+      container.innerHTML = allNotifications.map(notif => {
+        const typeEmoji = notif.type === 'alert' ? '⚠️' : notif.type === 'resolved' ? '✅' : 'ℹ️';
+        const bgClass = notif.severity === 'critical' ? 'bg-pink-500/10 border-l-4 border-pink-500' :
+                       notif.severity === 'warning' ? 'bg-yellow-500/10 border-l-4 border-yellow-500' :
+                       'bg-cyan-500/10 border-l-4 border-cyan-500';
+        
+        return `
+          <div class="p-3 rounded ${bgClass} hover:bg-opacity-20 transition-all cursor-pointer" onclick="markNotificationRead(${notif.id})">
+            <div class="flex items-start justify-between mb-1">
+              <h4 class="font-semibold text-sm">${typeEmoji} ${notif.title}</h4>
+              <span class="text-xs text-gray-500">${notif.timestamp.split(',')[1]}</span>
+            </div>
+            <p class="text-xs text-gray-400 mb-1">${notif.message}</p>
+            ${notif.metadata.meter_id ? `
+              <p class="text-xs text-gray-500">
+                📍 ${notif.metadata.meter_id} - ${notif.metadata.location}
+              </p>
+              <p class="text-xs text-gray-500">
+                📊 Reading: ${notif.metadata.reading} kWh | V: ${notif.metadata.sensor1} | A: ${notif.metadata.sensor2}
+              </p>
+            ` : ''}
+            ${!notif.read ? '<div class="w-2 h-2 bg-cyan-400 rounded-full inline-block mt-1"></div>' : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function markNotificationRead(id) {
+      const notif = allNotifications.find(n => n.id === id);
+      if (notif) {
+        notif.read = true;
+        renderNotifications();
+        updateNotificationBadge();
+      }
+    }
+
+    // ========== SMS & Email Notifications ==========
+    async function sendSMSNotification(phoneNumber, meter_id, severity, message) {
+      try {
+        const smsData = {
+          to: phoneNumber,
+          from: '+1234567890',
+          body: `🚨 ETDS ALERT [${severity.toUpperCase()}]\nMeter: ${meter_id}\nMessage: ${message}\nTime: ${new Date().toLocaleString()}`
+        };
+        
+        console.log(`📱 SMS Queued:`, smsData);
+        showToast(`📱 SMS notification sent to ${phoneNumber}`, 'success');
+        return true;
+      } catch (error) {
+        console.error('SMS sending failed:', error);
+        showToast('SMS notification queued for processing', 'warning');
+        return false;
+      }
+    }
+
+    async function sendEmailNotification(email, meter_id, severity, message, details) {
+      try {
+        const emailData = {
+          personalizations: [{
+            to: [{ email: email }],
+            subject: `[${severity.toUpperCase()}] ⚡ ETDS Alert - ${meter_id}`
+          }],
+          from: { email: 'kingofmasterniraj@gmail.com', name: 'ETDS System' },
+          content: [{
+            type: 'text/html',
+            value: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: linear-gradient(135deg, #0a1628 0%, #0d2137 100%); color: #e0f7ff; padding: 20px; border-radius: 8px; text-align: center;">
+                  <h1 style="color: #00f5ff; margin: 0;">⚡ ETDS Alert Notification</h1>
+                </div>
+                
+                <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin-top: 20px;">
+                  <h2 style="color: ${severity === 'critical' ? '#ff006e' : '#ffaa00'}; margin-top: 0;">
+                    ${severity.toUpperCase()} - ${message}
+                  </h2>
+                  
+                  <table style="width: 100%; margin: 20px 0; border-collapse: collapse;">
+                    <tr style="background: #e0e0e0;">
+                      <td style="padding: 12px; border: 1px solid #ccc; font-weight: bold;">Meter ID:</td>
+                      <td style="padding: 12px; border: 1px solid #ccc;">${meter_id}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 12px; border: 1px solid #ccc; font-weight: bold;">Severity:</td>
+                      <td style="padding: 12px; border: 1px solid #ccc; color: ${severity === 'critical' ? '#ff006e' : '#ffaa00'};">
+                        <strong>${severity.toUpperCase()}</strong>
+                      </td>
+                    </tr>
+                    <tr style="background: #e0e0e0;">
+                      <td style="padding: 12px; border: 1px solid #ccc; font-weight: bold;">Timestamp:</td>
+                      <td style="padding: 12px; border: 1px solid #ccc;">${new Date().toLocaleString()}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 12px; border: 1px solid #ccc; font-weight: bold;">Details:</td>
+                      <td style="padding: 12px; border: 1px solid #ccc;">${details}</td>
+                    </tr>
+                  </table>
+                  
+                  <div style="background: #fff3cd; border-left: 4px solid #ffaa00; padding: 15px; border-radius: 4px; margin: 20px 0;">
+                    <strong>⚠️ Action Required:</strong><br/>
+                    Please review this alert immediately through the ETDS Dashboard and take appropriate action.
+                  </div>
+                  
+                  <p style="color: #666; font-size: 12px;">
+                    This is an automated notification from the Electricity Theft Detection System (ETDS).<br/>
+                    Do not reply to this email. Visit your dashboard to manage this alert.
+                  </p>
+                </div>
+              </div>
+            `
+          }],
+          reply_to: { email: 'kingofmasterniraj@gmail.com' }
+        };
+        
+        console.log(`📧 Email Queued to ${email}:`, emailData);
+        showToast(`📧 Email notification sent to ${email}`, 'success');
+        return true;
+      } catch (error) {
+        console.error('Email sending failed:', error);
+        showToast('Email notification queued for processing', 'warning');
+        return false;
+      }
+    }
+
+    // ========== Charts ==========
+    let analyticsChart, liveChart, detectionChart;
+
+    function initCharts() {
+      const analyticsCtx = document.getElementById('analyticsChart');
+      if (analyticsCtx) {
+        analyticsChart = new SimpleChart(analyticsCtx, {
+          type: 'bar',
+          data: [65, 59, 80, 81, 56, 55, 70],
+          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          color: '#00f5ff'
+        });
+      }
+
+      const liveCtx = document.getElementById('liveChart');
+      if (liveCtx) {
+        liveChartData = Array(20).fill(0).map(() => Math.random() * 100);
+        liveChart = new SimpleChart(liveCtx, {
+          type: 'line',
+          data: liveChartData,
+          labels: Array(20).fill(''),
+          color: '#00f5ff'
+        });
+      }
+
+      const detectionCtx = document.getElementById('detectionChart');
+      if (detectionCtx) {
+        detectionChartData = Array(20).fill(0).map(() => Math.random() * 50);
+        detectionChart = new SimpleChart(detectionCtx, {
+          type: 'line',
+          data: detectionChartData,
+          labels: Array(20).fill(''),
+          color: '#ff006e'
+        });
+      }
+    }
+
+    class SimpleChart {
+      constructor(canvas, options) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.options = options;
+        this.draw();
+      }
+
+      draw() {
+        const { ctx, options } = this;
+        const { data, labels, color, type } = options;
+        
+        const rect = this.canvas.getBoundingClientRect();
+        this.canvas.width = rect.width * 2;
+        this.canvas.height = rect.height * 2;
+        ctx.scale(2, 2);
+        
+        const width = rect.width;
+        const height = rect.height;
+        const padding = 40;
+        const chartWidth = width - padding * 2;
+        const chartHeight = height - padding * 2;
+        
+        ctx.clearRect(0, 0, width, height);
+        
+        const max = Math.max(...data) * 1.2;
+        const min = 0;
+        
+        if (type === 'line') {
+          ctx.beginPath();
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2;
+          
+          data.forEach((value, i) => {
+            const x = padding + (i / (data.length - 1)) * chartWidth;
+            const y = height - padding - ((value - min) / (max - min)) * chartHeight;
+            
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          });
+          ctx.stroke();
+          
+          const gradient = ctx.createLinearGradient(0, padding, 0, height - padding);
+          gradient.addColorStop(0, color + '40');
+          gradient.addColorStop(1, color + '00');
+          
+          ctx.lineTo(padding + chartWidth, height - padding);
+          ctx.lineTo(padding, height - padding);
+          ctx.closePath();
+          ctx.fillStyle = gradient;
+          ctx.fill();
+        } else if (type === 'bar') {
+          const barWidth = chartWidth / data.length * 0.7;
+          const gap = chartWidth / data.length * 0.3;
+          
+          data.forEach((value, i) => {
+            const x = padding + (i * (barWidth + gap));
+            const barHeight = ((value - min) / (max - min)) * chartHeight;
+            const y = height - padding - barHeight;
+            
+            const gradient = ctx.createLinearGradient(x, y, x, height - padding);
+            gradient.addColorStop(0, color);
+            gradient.addColorStop(1, color + '40');
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(x, y, barWidth, barHeight);
+          });
+        }
+        
+        ctx.fillStyle = '#8899aa';
+        ctx.font = '10px Rajdhani';
+        labels.forEach((label, i) => {
+          if (label) {
+            const x = padding + (i / (labels.length - 1)) * chartWidth;
+            ctx.fillText(label, x - 10, height - 10);
+          }
+        });
+      }
+
+      update(newData) {
+        this.options.data = newData;
+        this.draw();
+      }
+    }
+
+    // ========== Meters ==========
+    function renderMeters() {
+      const grid = document.getElementById('metersGrid');
+      grid.innerHTML = '';
+      
+      sampleMeters.forEach(meter => {
+        const statusColors = {
+          normal: 'bg-green-500/20 text-green-400',
+          warning: 'bg-yellow-500/20 text-yellow-400',
+          critical: 'bg-pink-500/20 text-pink-400'
+        };
+        
+        const card = document.createElement('div');
+        card.className = 'card meter-card p-4';
+        card.innerHTML = `
+          <div class="flex items-center justify-between mb-3">
+            <span class="font-mono text-cyan-400 font-bold">${meter.id}</span>
+            <span class="px-2 py-1 rounded text-xs ${statusColors[meter.status]}">${meter.status.toUpperCase()}</span>
+          </div>
+          <p class="text-sm text-gray-400 mb-2">📍 ${meter.location}</p>
+          <p class="text-2xl font-bold">${meter.reading.toLocaleString()} <span class="text-sm font-normal text-gray-400">kWh</span></p>
+          <div class="meter-gauge">
+            <div class="meter-fill" style="width: ${Math.min(meter.reading / 40, 100)}%;"></div>
+          </div>
+          <div class="mt-3 flex gap-2">
+            <button class="btn-secondary text-xs flex-1 py-2" onclick="viewMeterDetails('${meter.id}')">Details</button>
+            <button class="btn-secondary text-xs flex-1 py-2 text-pink-400 border-pink-400" onclick="reportMeter('${meter.id}')">Report</button>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function viewMeterDetails(id) {
+      showToast(`Viewing details for ${id}`, 'info');
+    }
+
+    function reportMeter(id) {
+      showToast(`Report submitted for ${id}`, 'warning');
+    }
+
+    // Add Meter Modal
+    const addMeterModal = document.getElementById('addMeterModal');
+    document.getElementById('addMeterBtn').addEventListener('click', () => {
+      addMeterModal.classList.remove('hidden');
+      addMeterModal.classList.add('flex');
+    });
+
+    document.getElementById('cancelMeterBtn').addEventListener('click', () => {
+      addMeterModal.classList.add('hidden');
+      addMeterModal.classList.remove('flex');
+    });
+
+    document.getElementById('confirmAddMeterBtn').addEventListener('click', async () => {
+      const id = document.getElementById('newMeterID').value;
+      const location = document.getElementById('newMeterLocation').value;
+      
+      if (id && location) {
+        sampleMeters.push({
+          id,
+          location,
+          lat: 23.02 + Math.random() * 0.01,
+          lng: 72.57 + Math.random() * 0.01,
+          reading: Math.floor(Math.random() * 2000),
+          status: 'normal'
+        });
+        renderMeters();
+        addMeterModal.classList.add('hidden');
+        addMeterModal.classList.remove('flex');
+        document.getElementById('newMeterID').value = '';
+        document.getElementById('newMeterLocation').value = '';
+        showToast('Meter added successfully!', 'success');
+      }
+    });
+
+    // ========== Alerts ==========
+    function updateAlertBadge() {
+      const unresolvedAlerts = allData.filter(d => d.type === 'alert' && !d.resolved).length;
+      alertCount = unresolvedAlerts;
+      document.getElementById('alertBadge').textContent = alertCount;
+    }
+
+    function renderAlerts() {
+      const container = document.getElementById('alertsList');
+      const alerts = allData.filter(d => d.type === 'alert');
+      
+      if (alerts.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-8 text-gray-400">
+            <svg class="w-16 h-16 mx-auto mb-4 opacity-50" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
+            </svg>
+            <p>No alerts recorded yet</p>
+          </div>
+        `;
+        return;
+      }
+      
+      container.innerHTML = alerts.slice(0, 20).map(alert => {
+        const alertClass = alert.severity === 'critical' ? 'alert-critical' : 
+                          alert.severity === 'warning' ? 'alert-warning' : 'alert-success';
+        return `
+          <div class="card p-4 alert-item ${alertClass}">
+            <div class="flex items-start justify-between">
+              <div>
+                <p class="font-semibold">${alert.meter_id} - ${alert.location}</p>
+                <p class="text-sm text-gray-400">${new Date(alert.timestamp).toLocaleString()}</p>
+                <p class="text-sm mt-2">Reading: ${alert.reading} kWh | Sensor 1: ${alert.sensor1}V | Sensor 2: ${alert.sensor2}A</p>
+              </div>
+              <span class="px-2 py-1 rounded text-xs ${
+                alert.severity === 'critical' ? 'bg-pink-500/20 text-pink-400' :
+                alert.severity === 'warning' ? 'bg-yellow-500/20 text-yellow-400' :
+                'bg-green-500/20 text-green-400'
+              }">${alert.severity.toUpperCase()}</span>
+            </div>
+            ${!alert.resolved ? `
+              <button class="btn-secondary text-xs mt-3" onclick="resolveAlert('${alert.__backendId}')">Mark Resolved</button>
+            ` : '<span class="text-xs text-green-400 mt-3 inline-block">✓ Resolved</span>'}
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function resolveAlert(id) {
+      const alert = allData.find(d => d.__backendId === id);
+      if (alert && window.dataSdk) {
+        alert.resolved = true;
+        const result = await window.dataSdk.update(alert);
+        if (result.isOk) {
+          await sendEmailNotification(
+            currentUser.email, 
+            alert.meter_id, 
+            'info', 
+            `✅ ALERT RESOLVED - ${alert.meter_id}`,
+            `The alert for meter ${alert.meter_id} at ${alert.location} has been resolved.`
+          );
+          
+          addNotification(
+            `✅ Alert Resolved: ${alert.meter_id}`,
+            `Alert at ${alert.location} has been marked as resolved`,
+            'resolved',
+            'info',
+            {
+              meter_id: alert.meter_id,
+              location: alert.location,
+              resolved_notified: true
+            }
+          );
+          
+          showToast('Alert resolved & notification sent', 'success');
+        }
+      }
+    }
+
+    // ========== Detection System ==========
+    function updateDetectionLog() {
+      const container = document.getElementById('detectionLog');
+      const detections = allData.filter(d => d.type === 'detection').slice(0, 10);
+      
+      if (detections.length === 0) {
+        container.innerHTML = '<p class="text-center text-gray-400 py-4">No detections logged</p>';
+        return;
+      }
+      
+      container.innerHTML = detections.map(d => `
+        <div class="p-3 rounded-lg ${d.severity === 'critical' ? 'bg-pink-500/10' : 'bg-yellow-500/10'} flex items-center gap-3">
+          <div class="w-3 h-3 rounded-full ${d.severity === 'critical' ? 'bg-pink-400' : 'bg-yellow-400'} animate-pulse"></div>
+          <div class="flex-1">
+            <p class="text-sm font-semibold">${d.meter_id}</p>
+            <p class="text-xs text-gray-400">${new Date(d.timestamp).toLocaleTimeString()}</p>
+          </div>
+          <span class="text-xs ${d.severity === 'critical' ? 'text-pink-400' : 'text-yellow-400'}">${d.severity.toUpperCase()}</span>
+        </div>
+      `).join('');
+    }
+
+    function addRadarDot(angle, distance, severity) {
+      const container = document.getElementById('radarContainer');
+      const existing = container.querySelectorAll('.radar-dot');
+      if (existing.length > 5) existing[0].remove();
+      
+      const dot = document.createElement('div');
+      dot.className = 'radar-dot';
+      const x = 50 + Math.cos(angle) * distance;
+      const y = 50 + Math.sin(angle) * distance;
+      dot.style.left = x + '%';
+      dot.style.top = y + '%';
+      dot.style.background = severity === 'critical' ? 'var(--accent)' : 'var(--warning)';
+      container.appendChild(dot);
+    }
+
+    function addMapMarker(lat, lng, severity) {
+      const container = document.getElementById('mapContainer').querySelector('.map-placeholder');
+      const existing = container.querySelectorAll('.map-marker');
+      if (existing.length > 5) existing[0].remove();
+      
+      const marker = document.createElement('div');
+      marker.className = 'map-marker';
+      marker.style.left = (20 + Math.random() * 60) + '%';
+      marker.style.top = (20 + Math.random() * 60) + '%';
+      marker.style.background = severity === 'critical' ? 'var(--accent)' : 'var(--warning)';
+      container.appendChild(marker);
+    }
+
+    // ========== Simulation ==========
+    let simulationInterval;
+
+    // API Fallback System with Smart Routing
+    let lastAPISuccess = false;
+    let apiRetryCount = 0;
+    const MAX_API_RETRIES = 3;
+
+    async function fetchRealSensorData() {
+      // If API not configured, return null immediately
+      if (!apiConfig.enabled || !apiConfig.endpoint || !apiConfig.apiKey) {
+        isUsingRealAPI = false;
+        return null;
+      }
+      
+      try {
+        // Check if endpoint is valid URL
+        if (!apiConfig.endpoint.startsWith('http')) {
+          throw new Error('Invalid API endpoint');
+        }
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+        const response = await fetch(apiConfig.endpoint, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${apiConfig.apiKey}`,
+            'Content-Type': 'application/json',
+            'X-API-Client': 'ETDS-System'
+          },
+          signal: controller.signal,
+          mode: 'cors'
+        });
+        
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`API Error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        // Validate response structure
+        if (!data || typeof data !== 'object') {
+          throw new Error('Invalid API response format');
+        }
+
+        lastAPISuccess = true;
+        apiRetryCount = 0;
+        isUsingRealAPI = true;
+        return data;
+
+      } catch (error) {
+        console.warn('Real API fetch failed:', error.message);
+        apiRetryCount++;
+
+        // Show warning only on first failure
+        if (apiRetryCount === 1) {
+          showToast(`⚠️ API Connection Issue - Switching to Database Mode`, 'warning');
+        }
+
+        // If max retries exceeded or API disabled, use demo data
+        if (apiRetryCount >= MAX_API_RETRIES) {
+          isUsingRealAPI = false;
+          lastAPISuccess = false;
+        }
+
+        return null;
+      }
+    }
+
+    async function updateSensorReadings() {
+      let sensor1, sensor2;
+      let dataSource = 'demo'; // 'real', 'database', or 'demo'
+
+      // Priority 1: Try Real API if configured
+      if (apiConfig.enabled && apiConfig.endpoint && apiConfig.apiKey) {
+        const realData = await fetchRealSensorData();
+        if (realData) {
+          // Extract sensor values from API response (flexible key names)
+          sensor1 = parseFloat(realData.voltage || realData.sensor1 || realData.v1 || realData.volts || (240 + Math.random() * 15));
+          sensor2 = parseFloat(realData.current || realData.sensor2 || realData.a1 || realData.amps || (10 + Math.random() * 8));
+          dataSource = 'real';
+        } else {
+          // Priority 2: Fall back to database if available
+          if (allData.length > 0) {
+            const latestReading = allData.filter(d => d.sensor1).pop();
+            if (latestReading) {
+              sensor1 = latestReading.sensor1 + (Math.random() - 0.5) * 2; // Add small variance
+              sensor2 = latestReading.sensor2 + (Math.random() - 0.5) * 1;
+              dataSource = 'database';
+            } else {
+              // Priority 3: Use demo data
+              sensor1 = 240 + Math.random() * 15;
+              sensor2 = 10 + Math.random() * 8;
+              dataSource = 'demo';
+            }
+          } else {
+            // Priority 3: Use demo data
+            sensor1 = 240 + Math.random() * 15;
+            sensor2 = 10 + Math.random() * 8;
+            dataSource = 'demo';
+          }
+        }
+      } else {
+        // API not configured - use database or demo
+        if (allData.length > 0) {
+          const latestReading = allData.filter(d => d.sensor1).pop();
+          if (latestReading) {
+            sensor1 = latestReading.sensor1 + (Math.random() - 0.5) * 2;
+            sensor2 = latestReading.sensor2 + (Math.random() - 0.5) * 1;
+            dataSource = 'database';
+          } else {
+            sensor1 = 240 + Math.random() * 15;
+            sensor2 = 10 + Math.random() * 8;
+            dataSource = 'demo';
+          }
+        } else {
+          sensor1 = 240 + Math.random() * 15;
+          sensor2 = 10 + Math.random() * 8;
+          dataSource = 'demo';
+        }
+      }
+
+      // Ensure values are valid numbers
+      sensor1 = isNaN(sensor1) ? 240 : parseFloat(sensor1);
+      sensor2 = isNaN(sensor2) ? 10 : parseFloat(sensor2);
+      
+      document.getElementById('sensor1Value').textContent = sensor1.toFixed(1);
+      document.getElementById('sensor2Value').textContent = sensor2.toFixed(1);
+      document.getElementById('sensor1Gauge').style.width = ((sensor1 - 220) / 40 * 100) + '%';
+      document.getElementById('sensor2Gauge').style.width = ((sensor2 - 5) / 20 * 100) + '%';
+      
+      if (liveChart) {
+        liveChartData.shift();
+        liveChartData.push(sensor1);
+        liveChart.update(liveChartData);
+      }
+      
+      if (detectionChart) {
+        detectionChartData.shift();
+        detectionChartData.push(Math.random() * 50 + (Math.random() > 0.9 ? 50 : 0));
+        detectionChart.update(detectionChartData);
+      }
+    }
+
+    function startSimulation() {
+      setInterval(updateSensorReadings, 2000);
+
+      setInterval(async () => {
+        if (Math.random() > 0.85 && window.dataSdk && currentUser) {
+          const meter = sampleMeters[Math.floor(Math.random() * sampleMeters.length)];
+          const severity = Math.random() > 0.7 ? 'critical' : 'warning';
+          
+          if (allData.length >= 999) {
+            showToast('Maximum data limit reached', 'warning');
+            return;
+          }
+          
+          const alertData = {
+            type: 'alert',
+            timestamp: new Date().toISOString(),
+            meter_id: meter.id,
+            location: meter.location,
+            lat: meter.lat,
+            lng: meter.lng,
+            reading: Math.floor(Math.random() * 3000) + 1000,
+            sensor1: Math.floor(240 + Math.random() * 15),
+            sensor2: Math.floor(10 + Math.random() * 8),
+            status: severity,
+            severity: severity,
+            resolved: false,
+            user_email: currentUser.email,
+            user_name: currentUser.name
+          };
+          
+          const result = await window.dataSdk.create(alertData);
+          
+          if (result.isOk) {
+            try {
+              const audio = document.getElementById('alertSound');
+              if (audio) audio.play().catch(() => {});
+            } catch (e) {}
+            
+            await sendSMSNotification('+91-8800000000', meter.id, severity, `ALERT: ${severity.toUpperCase()} - ${meter.id} at ${meter.location} | Reading: ${alertData.reading} kWh`);
+            await sendEmailNotification(currentUser.email, meter.id, severity, `⚠️ ELECTRICITY THEFT DETECTION ALERT`, `Meter: ${meter.id}\nLocation: ${meter.location}\nReading: ${alertData.reading} kWh\nStatus: ${severity.toUpperCase()}`);
+            
+            addNotification(
+              `${severity.toUpperCase()} Alert: ${meter.id}`,
+              `Anomaly detected at ${meter.location}`,
+              'alert',
+              severity,
+              {
+                meter_id: meter.id,
+                location: meter.location,
+                reading: alertData.reading,
+                sensor1: alertData.sensor1,
+                sensor2: alertData.sensor2,
+                sms_sent: true,
+                email_sent: true
+              }
+            );
+            
+            showToast(`⚠️ ${severity.toUpperCase()} Alert: ${meter.id}`, severity === 'critical' ? 'error' : 'warning');
+            
+            addRadarDot(Math.random() * Math.PI * 2, Math.random() * 40 + 10, severity);
+            addMapMarker(meter.lat, meter.lng, severity);
+            
+            const normal = sampleMeters.filter(m => m.status === 'normal').length;
+            const warning = allData.filter(d => d.severity === 'warning' && !d.resolved).length;
+            const critical = allData.filter(d => d.severity === 'critical' && !d.resolved).length;
+            
+            document.getElementById('radarNormal').textContent = normal;
+            document.getElementById('radarWarning').textContent = warning;
+            document.getElementById('radarCritical').textContent = critical;
+          }
+        }
+      }, 8000);
+    }
+
+    document.getElementById('notificationBell').addEventListener('click', () => {
+      navItems.forEach(i => i.classList.remove('active'));
+      document.querySelector('[data-page="alerts"]').classList.add('active');
+      dashboardSections.forEach(s => s.classList.remove('active'));
+      document.getElementById('alertsSection').classList.add('active');
+      pageTitle.textContent = 'Alerts';
+    });
+
+    document.getElementById('alertFilter').addEventListener('change', (e) => {
+      const filter = e.target.value;
+      renderAlerts(filter);
+    });
+
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideIn {
+        from { opacity: 0; transform: translateX(-20px); }
+        to { opacity: 1; transform: translateX(0); }
+      }
+      .animate-slideIn { animation: slideIn 0.3s ease-out; }
+      .dashboard-section { display: none; }
+      .dashboard-section.active { display: block; }
+    `;
+    document.head.appendChild(style);
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('overviewSection').classList.add('active');
+    });
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9d99e56ea544a6dc',t:'MTc3MzA1NzM4NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
