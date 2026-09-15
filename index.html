@@ -21,7 +21,6 @@
 </head>
 <body>
 <div class="grid-bg"></div><div class="shell app">
-<!-- APP -->
 <div id="appView" class="hiddenx min-h-screen">
   <div class="flex">
     <aside class="hidden lg:flex fixed left-0 top-0 bottom-0 w-72 p-5 flex-col glass border-r border-cyan-500/10">
@@ -40,7 +39,7 @@
           <div class="glass card p-5"><div class="text-slate-400 text-sm">Power now</div><div id="mPower" class="metric mt-2">0.0</div><div class="text-xs text-slate-500 mt-2">kW across latest meters</div></div>
           <div class="glass card p-5"><div class="text-slate-400 text-sm">Data freshness</div><div id="mFresh" class="metric mt-2">—</div><div class="text-xs text-slate-500 mt-2">Age of newest reading</div></div>
         </div>
-        <div class="grid xl:grid-cols-3 gap-4 mb-6"><div class="glass card p-5 xl:col-span-2"><div class="flex items-center justify-between mb-4"><div><div class="font-orbitron font-semibold">Live Power</div><div class="text-xs text-slate-500">Actual readings stored in the live database</div></div><span class="badge bg-cyan-500/10 text-cyan-300">REALTIME</span></div><canvas id="powerChart" height="150"></canvas></div><div class="glass card p-5"><div class="font-orbitron font-semibold mb-4">Live System Health</div><div class="space-y-5"><div><div class="flex justify-between text-sm"><span>Online meters</span><span id="healthOnline">0%</span></div><div class="mini-bar mt-2"><span id="healthOnlineBar"></span></div></div><div><div class="flex justify-between text-sm"><span>Normal meters</span><span id="healthNormal">0%</span></div><div class="mini-bar mt-2"><span id="healthNormalBar"></span></div></div><div><div class="flex justify-between text-sm"><span>Signal quality</span><span id="healthSignal">—</span></div><div class="mini-bar mt-2"><span id="healthSignalBar"></span></div></div></div></div></div>
+        <div class="grid xl:grid-cols-3 gap-4 mb-6"><div class="glass card p-5 xl:col-span-2"><div class="flex items-center justify-between mb-4"><div><div class="font-orbitron font-semibold">Live Power & Voltage</div><div class="text-xs text-slate-500">Actual readings stored in the live database</div></div><span class="badge bg-cyan-500/10 text-cyan-300">REALTIME</span></div><canvas id="powerChart" height="150"></canvas></div><div class="glass card p-5"><div class="font-orbitron font-semibold mb-4">Live System Health</div><div class="space-y-5"><div><div class="flex justify-between text-sm"><span>Online meters</span><span id="healthOnline">0%</span></div><div class="mini-bar mt-2"><span id="healthOnlineBar"></span></div></div><div><div class="flex justify-between text-sm"><span>Normal meters</span><span id="healthNormal">0%</span></div><div class="mini-bar mt-2"><span id="healthNormalBar"></span></div></div><div><div class="flex justify-between text-sm"><span>Signal quality</span><span id="healthSignal">—</span></div><div class="mini-bar mt-2"><span id="healthSignalBar"></span></div></div></div></div></div>
         <div class="glass card p-5"><div class="flex items-center justify-between mb-4"><div class="font-orbitron font-semibold">Latest Meter Telemetry</div><button data-page="meters" class="btn btn-ghost nav-link">View meters</button></div><div class="overflow-auto"><table class="w-full text-sm"><thead class="text-slate-500"><tr><th class="text-left p-2">Meter</th><th class="text-left p-2">Voltage</th><th class="text-left p-2">Current</th><th class="text-left p-2">Power</th><th class="text-left p-2">Status</th><th class="text-left p-2">Seen</th></tr></thead><tbody id="latestTable"></tbody></table></div></div>
       </section>
 
@@ -59,14 +58,10 @@ Authorization: Bearer &lt;DEVICE_API_KEY&gt;
 
 {
   "meter_id": "MTR-001",
-  "voltage": 239.8,
-  "current": 12.4,
-  "power_kw": 2.97,
-  "source_power_kw": 3.40,
-  "load_power_kw": 2.97,
-  "tamper": false,
-  "latitude": 22.3072,
-  "longitude": 73.1812
+  "voltage": 18.0,
+  "current": 1.20,
+  "power_kw": 0.022,
+  "tamper": false
 }</pre></div></div></section>
     </main>
   </div>
@@ -80,7 +75,7 @@ Authorization: Bearer &lt;DEVICE_API_KEY&gt;
 const CFG=window.ETDS_CONFIG||{};
 const hasConfig=CFG.SUPABASE_URL&&CFG.SUPABASE_PUBLISHABLE_KEY&&CFG.SUPABASE_URL.includes('supabase.co')&&!CFG.SUPABASE_PUBLISHABLE_KEY.startsWith('YOUR_');
 let sb=null,session={guest:true},map=null,powerChart=null,scoreChart=null,incidentChart=null,energyChart=null,channels=[],armed=false,buzzerTimer=null,buzzerCtx=null,buzzerMuted=false;
-let meters=[],readings=[],incidents=[],latestByMeter=new Map(),powerHistory=[],scoreHistory=[];
+let meters=[],readings=[],incidents=[],latestByMeter=new Map(),powerHistory=[],scoreHistory=[],voltHistory=[];
 const navItems=[['overview','⌂','Overview'],['meters','◈','Meters'],['alerts','⚠','Alerts'],['detection','⌁','Detection'],['analytics','▦','Analytics'],['ai','✦','AI'],['system','⚙','System']];
 const $=id=>document.getElementById(id);
 function toast(msg,type='info'){const el=document.createElement('div');el.className='toast glass rounded-xl p-4 border '+(type==='error'?'border-pink-500/50':type==='success'?'border-emerald-400/40':'border-cyan-400/30');el.innerHTML='<div class="text-sm">'+escapeHtml(msg)+'</div>';$('toasts').appendChild(el);setTimeout(()=>el.remove(),4200)}
@@ -95,8 +90,70 @@ function showPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.
 async function boot(){$('appView').classList.remove('hiddenx');buildNav();if(hasConfig&&sb){$('sysSupabase').textContent='connected';$('sysSupabase').className='text-emerald-300';await refreshAll();subscribeRealtime()}else{$('sysSupabase').textContent='not configured';$('sysSupabase').className='text-orange-300';toast('Supabase is not configured. Add config.js values to load live telemetry.','error')}if(!window._freshnessTimer)window._freshnessTimer=setInterval(refreshFreshness,1000)}
 async function refreshAll(){try{const [m,r,i]=await Promise.all([sb.from('meters').select('*').order('updated_at',{ascending:false}),sb.from('readings').select('*').order('measured_at',{ascending:false}).limit(800),sb.from('incidents').select('*').order('detected_at',{ascending:false}).limit(300)]);if(m.error)throw m.error;meters=m.data||[];readings=r.data||[];incidents=i.data||[];latestByMeter=new Map();for(const x of readings){if(!latestByMeter.has(x.meter_id))latestByMeter.set(x.meter_id,x)};renderAll()}catch(e){toast(e.message||'Database read failed','error')}}
 function renderAll(){renderOverview();renderMeters();renderIncidents();renderAnalytics();refreshMap();updateBuzzerState()}
-function renderOverview(){const now=Date.now();const online=meters.filter(m=>m.last_seen_at&&(now-new Date(m.last_seen_at)<90000)).length;const normal=meters.filter(m=>m.status==='normal').length;const activeTheft=incidents.filter(x=>x.status==='active'&&x.is_theft).length;let totalPower=0,latest=null;for(const [id,x] of latestByMeter){totalPower+=Number(x.power_kw)||0;if(!latest||new Date(x.measured_at)>new Date(latest.measured_at))latest=x}$('mOnline').textContent=online;$('mTheft').textContent=activeTheft;$('mPower').textContent=fmt(totalPower,2);$('mFresh').textContent=latest?fmtAgo(latest.measured_at):'—';const op=meters.length?Math.round(online/meters.length*100):0,norm=meters.length?Math.round(normal/meters.length*100):0,signals=meters.filter(m=>m.signal_strength!=null);const sig=signals.length?Math.round(signals.reduce((a,m)=>a+(Math.max(0,Math.min(100,(Number(m.signal_strength)+100))),0),0)/signals.length):0;$('healthOnline').textContent=op+'%';$('healthNormal').textContent=norm+'%';$('healthSignal').textContent=signals.length?sig+'%':'—';$('healthOnlineBar').style.width=op+'%';$('healthNormalBar').style.width=norm+'%';$('healthSignalBar').style.width=sig+'%';if(!$('latestTable').children.length||$('latestTable').children.length!==meters.length){$('latestTable').innerHTML=meters.slice(0,12).map(m=>{const x=latestByMeter.get(m.meter_id)||{};return`<tr class="table-row" id="row-${m.meter_id}"><td class="p-2 font-semibold">${escapeHtml(m.meter_id)}<div class="text-xs text-slate-500">${escapeHtml(m.location||'')}</div></td><td class="p-2 col-v">${fmt(x.voltage)} V</td><td class="p-2 col-c">${fmt(x.current)} A</td><td class="p-2 col-p">${fmt(x.power_kw,2)} kW</td><td class="p-2 col-s">${statusBadge(m.status)}</td><td class="p-2 text-slate-400 col-t">${fmtAgo(m.last_seen_at)}</td></tr>`}).join('')||'<tr><td colspan="6" class="p-5 text-center text-slate-500">No meters yet.</td></tr>'}else{meters.slice(0,12).forEach(m=>{const row=$('row-'+m.meter_id);if(row){const x=latestByMeter.get(m.meter_id)||{};const c=row.children;if(c[1])c[1].textContent=fmt(x.voltage)+' V';if(c[2])c[2].textContent=fmt(x.current)+' A';if(c[3])c[3].textContent=fmt(x.power_kw,2)+' kW';if(c[4])c[4].innerHTML=statusBadge(m.status);if(c[5])c[5].textContent=fmtAgo(m.last_seen_at)}})}if(activeTheft>0){const a=incidents.find(x=>x.status==='active'&&x.is_theft);$('theftBanner').classList.remove('hiddenx');$('theftBannerText').textContent=(a.reasons||[]).join(' • ')||'Possible theft indicated by live telemetry.'}else{$('theftBanner').classList.add('hiddenx')}powerHistory.push({t:new Date(),v:totalPower});powerHistory=powerHistory.slice(-25);scoreHistory.push({t:new Date(),v:latest?.anomaly_score||0});scoreHistory=scoreHistory.slice(-25);drawMiniCharts()}
-function renderMeters(){$('meterGrid').innerHTML=meters.map(m=>{const x=latestByMeter.get(m.meter_id)||{};return`<div class="glass card p-5"><div class="flex items-start justify-between"><div><div class="font-orbitron font-semibold">${escapeHtml(m.meter_id)}</div><div class="text-sm text-slate-400 mt-1">${escapeHtml(m.location||'Unassigned')}</div></div>${statusBadge(m.status)}</div><div class="grid grid-cols-2 gap-3 mt-5"><div class="p-3 rounded-xl bg-slate-900/40"><div class="text-xs text-slate-500">Voltage</div><div class="font-orbitron">${fmt(x.voltage)} V</div></div><div class="p-3 rounded-xl bg-slate-900/40"><div class="text-xs text-slate-500">Current</div><div class="font-orbitron">${fmt(x.current)} A</div></div><div class="p-3 rounded-xl bg-slate-900/40"><div class="text-xs text-slate-500">Power</div><div class="font-orbitron">${fmt(x.power_kw,2)} kW</div></div><div class="p-3 rounded-xl bg-slate-900/40"><div class="text-xs text-slate-500">Last seen</div><div>${fmtAgo(m.last_seen_at)}</div></div></div><div class="mt-4 text-xs text-slate-500">${m.tamper?'⚠️ Tamper signal active':'✓ No tamper signal'} ${m.signal_strength!=null?' • RSSI '+m.signal_strength+' dBm':''}</div></div>`}).join('')||'<div class="text-slate-500">No meters registered. Add your hardware meter ID first.</div>'}
+
+function renderOverview(){
+  const now=Date.now();
+  const online=meters.filter(m=>m.last_seen_at&&(now-new Date(m.last_seen_at)<90000)).length;
+  const normal=meters.filter(m=>m.status==='normal').length;
+  const activeTheft=incidents.filter(x=>x.status==='active'&&x.is_theft).length;
+  let totalPower=0,latest=null,currentVolt=18.0;
+  for(const [id,x] of latestByMeter){
+    totalPower+=Number(x.power_kw)||0;
+    if(x.voltage) currentVolt=Number(x.voltage);
+    if(!latest||new Date(x.measured_at)>new Date(latest.measured_at))latest=x
+  }
+  $('mOnline').textContent=online;
+  $('mTheft').textContent=activeTheft;
+  $('mPower').textContent=fmt(totalPower,3);
+  $('mFresh').textContent=latest?fmtAgo(latest.measured_at):'—';
+  const op=meters.length?Math.round(online/meters.length*100):0,norm=meters.length?Math.round(normal/meters.length*100):0,signals=meters.filter(m=>m.signal_strength!=null);
+  const sig=signals.length?Math.round(signals.reduce((a,m)=>a+(Math.max(0,Math.min(100,(Number(m.signal_strength)+100))),0),0)/signals.length):0;
+  $('healthOnline').textContent=op+'%';
+  $('healthNormal').textContent=norm+'%';
+  $('healthSignal').textContent=signals.length?sig+'%':'—';
+  $('healthOnlineBar').style.width=op+'%';
+  $('healthNormalBar').style.width=norm+'%';
+  $('healthSignalBar').style.width=sig+'%';
+
+  if(!$('latestTable').children.length || $('latestTable').children.length!==meters.length){
+    $('latestTable').innerHTML=meters.slice(0,12).map(m=>{
+      const x=latestByMeter.get(m.meter_id)||{};
+      return`<tr class="table-row" id="row-${m.meter_id}"><td class="p-2 font-semibold">${escapeHtml(m.meter_id)}<div class="text-xs text-slate-500">${escapeHtml(m.location||'')}</div></td><td class="p-2 col-v">${fmt(x.voltage)} V</td><td class="p-2 col-c">${fmt(x.current)} A</td><td class="p-2 col-p">${fmt(x.power_kw,3)} kW</td><td class="p-2 col-s">${statusBadge(m.status)}</td><td class="p-2 text-slate-400 col-t">${fmtAgo(m.last_seen_at)}</td></tr>`
+    }).join('')||'<tr><td colspan="6" class="p-5 text-center text-slate-500">No meters yet.</td></tr>';
+  } else {
+    meters.slice(0,12).forEach(m=>{
+      const row=$('row-'+m.meter_id);
+      if(row){
+        const x=latestByMeter.get(m.meter_id)||{};
+        const c=row.children;
+        if(c[1])c[1].textContent=fmt(x.voltage)+' V';
+        if(c[2])c[2].textContent=fmt(x.current)+' A';
+        if(c[3])c[3].textContent=fmt(x.power_kw,3)+' kW';
+        if(c[4])c[4].innerHTML=statusBadge(m.status);
+        if(c[5])c[5].textContent=fmtAgo(m.last_seen_at)
+      }
+    });
+  }
+
+  if(activeTheft>0){
+    const a=incidents.find(x=>x.status==='active'&&x.is_theft);
+    $('theftBanner').classList.remove('hiddenx');
+    $('theftBannerText').textContent=(a?.reasons||[]).join(' • ')||'Possible theft indicated by live telemetry.'
+  }else{
+    $('theftBanner').classList.add('hiddenx')
+  }
+
+  // Preserve up to 300 data points for timeline reviewing
+  powerHistory.push({t:new Date(),v:totalPower});
+  powerHistory=powerHistory.slice(-300);
+  voltHistory.push(currentVolt);
+  voltHistory=voltHistory.slice(-300);
+  scoreHistory.push({t:new Date(),v:latest?.anomaly_score||0});
+  scoreHistory=scoreHistory.slice(-300);
+  drawMiniCharts()
+}
+
+function renderMeters(){$('meterGrid').innerHTML=meters.map(m=>{const x=latestByMeter.get(m.meter_id)||{};return`<div class="glass card p-5"><div class="flex items-start justify-between"><div><div class="font-orbitron font-semibold">${escapeHtml(m.meter_id)}</div><div class="text-sm text-slate-400 mt-1">${escapeHtml(m.location||'Unassigned')}</div></div>${statusBadge(m.status)}</div><div class="grid grid-cols-2 gap-3 mt-5"><div class="p-3 rounded-xl bg-slate-900/40"><div class="text-xs text-slate-500">Voltage</div><div class="font-orbitron">${fmt(x.voltage)} V</div></div><div class="p-3 rounded-xl bg-slate-900/40"><div class="text-xs text-slate-500">Current</div><div class="font-orbitron">${fmt(x.current)} A</div></div><div class="p-3 rounded-xl bg-slate-900/40"><div class="text-xs text-slate-500">Power</div><div class="font-orbitron">${fmt(x.power_kw,3)} kW</div></div><div class="p-3 rounded-xl bg-slate-900/40"><div class="text-xs text-slate-500">Last seen</div><div>${fmtAgo(m.last_seen_at)}</div></div></div><div class="mt-4 text-xs text-slate-500">${m.tamper?'⚠️ Tamper signal active':'✓ No tamper signal'} ${m.signal_strength!=null?' • RSSI '+m.signal_strength+' dBm':''}</div></div>`}).join('')||'<div class="text-slate-500">No meters registered. Add your hardware meter ID first.</div>'}
 function renderIncidents(){const f=$('incidentFilter').value;let xs=incidents;if(f==='active'||f==='resolved')xs=xs.filter(x=>x.status===f);if(f==='theft')xs=xs.filter(x=>x.is_theft);$('incidentList').innerHTML=xs.map(x=>`<div class="glass card p-4 ${x.status==='active'&&x.is_theft?'border-pink-500/40':''}"><div class="flex flex-col md:flex-row md:items-start md:justify-between gap-3"><div><div class="flex items-center gap-2"><span class="font-orbitron font-semibold">${escapeHtml(x.meter_id)}</span>${statusBadge(x.severity)} ${x.is_theft?'<span class="badge bg-pink-500/10 text-pink-300">THEFT</span>':''}</div><div class="text-sm text-slate-400 mt-1">Detected ${new Date(x.detected_at).toLocaleString()} • ${x.status}</div><div class="text-sm mt-2">${escapeHtml((x.reasons||[]).join(' • ')||'No additional reason recorded.')}</div><div class="text-xs text-slate-500 mt-2">Anomaly ${fmt((x.anomaly_score||0)*100,1)}%${x.imbalance_pct!=null?' • Imbalance '+fmt(x.imbalance_pct,1)+'%':''}</div></div>${x.status==='active'?`<button class="btn btn-danger resolveBtn" data-id="${x.id}">Mark Resolved</button>`:`<span class="text-xs text-emerald-300">Resolved ${fmtAgo(x.resolved_at)}</span>`}</div></div>`).join('')||'<div class="text-slate-500">No incidents recorded.</div>';document.querySelectorAll('.resolveBtn').forEach(b=>b.onclick=()=>resolveIncident(b.dataset.id))}
 $('incidentFilter').onchange=renderIncidents;
 async function resolveIncident(id){const r=await sb.from('incidents').update({status:'resolved',resolved_at:new Date().toISOString(),resolution_note:'Resolved by operator.'}).eq('id',id);if(r.error)return toast(r.error.message,'error');toast('Incident marked resolved. Buzzer will stop automatically.','success');}
@@ -106,6 +163,7 @@ function refreshMap(){if(!map)return;map.eachLayer(l=>{if(l instanceof L.Marker)
 
 function renderAnalytics(){}
 function makeChart(ctx,type,data,opts={}){return new Chart(ctx,{type,data,options:{responsive:true,plugins:{legend:{labels:{color:'#9fb6c5'}}},scales:{x:{ticks:{color:'#708797'},grid:{color:'rgba(255,255,255,.05)'}},y:{ticks:{color:'#708797'},grid:{color:'rgba(255,255,255,.05)'}}},...opts}})}
+
 function drawMiniCharts(){
   const labels = powerHistory.map(x=>x.t.toLocaleTimeString());
   const powerData = powerHistory.map(x=>x.v);
@@ -114,27 +172,54 @@ function drawMiniCharts(){
   if(!powerChart){
     powerChart = makeChart($('powerChart'), 'line', {
       labels: labels,
-      datasets: [{
-        label: 'kW',
-        data: powerData,
-        borderColor: '#00f5ff',
-        backgroundColor: 'rgba(0, 245, 255, 0.1)',
-        fill: true,
-        tension: 0.35,
-        borderWidth: 2,
-        pointRadius: 0
-      }]
+      datasets: [
+        {
+          label: 'Power (kW)',
+          data: powerData,
+          borderColor: '#00f5ff',
+          backgroundColor: 'rgba(0, 245, 255, 0.12)',
+          fill: true,
+          tension: 0.25,
+          borderWidth: 2,
+          pointRadius: 0,
+          yAxisID: 'y'
+        },
+        {
+          label: 'Voltage (V)',
+          data: voltHistory,
+          borderColor: '#ffae2b',
+          borderDash: [4, 4],
+          fill: false,
+          tension: 0.1,
+          borderWidth: 1.5,
+          pointRadius: 0,
+          yAxisID: 'y1'
+        }
+      ]
     }, {
       animation: false,
-      plugins: { legend: { display: false } },
+      plugins: { legend: { display: true, labels: { color: '#9fb6c5', boxWidth: 12 } } },
       scales: {
-        y: { suggestedMin: 0, suggestedMax: 0.5, grid: { color: 'rgba(255,255,255,0.05)' } }
+        x: { ticks: { maxTicksLimit: 12, color: '#708797' } },
+        y: {
+          position: 'left',
+          suggestedMin: 0,
+          suggestedMax: 0.05,
+          grid: { color: 'rgba(255,255,255,0.05)' }
+        },
+        y1: {
+          position: 'right',
+          suggestedMin: 0,
+          suggestedMax: 24,
+          grid: { drawOnChartArea: false }
+        }
       }
     });
   } else {
     powerChart.data.labels = labels;
     powerChart.data.datasets[0].data = powerData;
-    powerChart.update('none'); // Instant smooth slide without full canvas rebuild
+    powerChart.data.datasets[1].data = voltHistory;
+    powerChart.update('none');
   }
 
   if(!scoreChart){
@@ -159,12 +244,38 @@ function drawMiniCharts(){
     scoreChart.update('none');
   }
 }
+
 function renderCharts(){if(incidentChart)incidentChart.destroy();const buckets=new Map();incidents.forEach(x=>{const k=new Date(x.detected_at).toLocaleDateString();buckets.set(k,(buckets.get(k)||0)+1)});incidentChart=makeChart($('incidentChart'),'bar',{labels:[...buckets.keys()].slice(-14),datasets:[{label:'Incidents',data:[...buckets.values()].slice(-14),borderWidth:1}]});if(energyChart)energyChart.destroy();energyChart=makeChart($('energyChart'),'bar',{labels:meters.map(m=>m.meter_id),datasets:[{label:'Latest kWh',data:meters.map(m=>latestByMeter.get(m.meter_id)?.energy_kwh||0),borderWidth:1}]});}
 
-function subscribeRealtime(){channels.forEach(c=>sb.removeChannel(c));channels=[];const c=sb.channel('etds-live').on('postgres_changes',{event:'*',schema:'public',table:'meters'},p=>{refreshAll()}).on('postgres_changes',{event:'INSERT',schema:'public',table:'readings'},p=>{const r=p.new;if(r){lastEvent('Reading '+r.meter_id+' • '+(r.status||'normal'));powerHistory.push({t:new Date(r.measured_at||Date.now()),v:Number(r.power_kw)||0});scoreHistory.push({t:new Date(r.measured_at||Date.now()),v:Number(r.anomaly_score)||0});latestByMeter.set(r.meter_id,r);drawMiniCharts();renderOverview()}}).on('postgres_changes',{event:'*',schema:'public',table:'incidents'},p=>{lastEvent('Incident update • '+p.new?.meter_id);refreshAll()}).subscribe((status)=>{$('rtState').textContent=status;$('rtState').className=status==='SUBSCRIBED'?'text-emerald-300':'text-orange-300';$('sysRealtime').textContent=status;$('sysRealtime').className=status==='SUBSCRIBED'?'text-emerald-300':'text-orange-300';});channels.push(c)}
+function subscribeRealtime(){
+  channels.forEach(c=>sb.removeChannel(c));
+  channels=[];
+  const c=sb.channel('etds-live')
+    .on('postgres_changes',{event:'*',schema:'public',table:'meters'},p=>{refreshAll()})
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'readings'},p=>{
+      const r=p.new;
+      if(r){
+        lastEvent('Reading '+r.meter_id+' • '+(r.status||'normal'));
+        powerHistory.push({t:new Date(r.measured_at||Date.now()),v:Number(r.power_kw)||0});
+        voltHistory.push(Number(r.voltage)||18.0);
+        scoreHistory.push({t:new Date(r.measured_at||Date.now()),v:Number(r.anomaly_score)||0});
+        latestByMeter.set(r.meter_id,r);
+        drawMiniCharts();
+        renderOverview()
+      }
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'incidents'},p=>{lastEvent('Incident update • '+p.new?.meter_id);refreshAll()})
+    .subscribe((status)=>{
+      $('rtState').textContent=status;
+      $('rtState').className=status==='SUBSCRIBED'?'text-emerald-300':'text-orange-300';
+      $('sysRealtime').textContent=status;
+      $('sysRealtime').className=status==='SUBSCRIBED'?'text-emerald-300':'text-orange-300';
+    });
+  channels.push(c)
+}
 function lastEvent(x){$('lastEvent').textContent=x+' • '+new Date().toLocaleTimeString()}
 function refreshFreshness(){renderOverview()}
-  
+
 function startBuzzer(){if(!armed||buzzerMuted)return;if(!buzzerCtx)buzzerCtx=new (window.AudioContext||window.webkitAudioContext)();if(buzzerCtx.state==='suspended')buzzerCtx.resume();if(buzzerTimer)return;const beep=()=>{if(!armed||buzzerMuted||!buzzerCtx){buzzerTimer=null;return}const osc=buzzerCtx.createOscillator(),gain=buzzerCtx.createGain();osc.type='square';osc.frequency.value=880;gain.gain.setValueAtTime(.0001,buzzerCtx.currentTime);gain.gain.exponentialRampToValueAtTime(.12,buzzerCtx.currentTime+.01);gain.gain.exponentialRampToValueAtTime(.0001,buzzerCtx.currentTime+.22);osc.connect(gain).connect(buzzerCtx.destination);osc.start();osc.stop(buzzerCtx.currentTime+.23);buzzerTimer=setTimeout(beep,350)};beep();$('buzzerState').textContent='BUZZER ACTIVE';$('buzzerState').className='text-sm font-semibold text-pink-200 pulse'}
 function stopBuzzer(){if(buzzerTimer){clearTimeout(buzzerTimer);buzzerTimer=null}$('buzzerState').textContent=armed?'BUZZER ARMED':'BUZZER NOT ARMED';$('buzzerState').className='text-sm font-semibold '+(armed?'text-cyan-200':'text-slate-400')}
 function updateBuzzerState(){const theft=incidents.some(x=>x.status==='active'&&x.is_theft);if(theft&&!buzzerMuted)startBuzzer();else stopBuzzer()}
