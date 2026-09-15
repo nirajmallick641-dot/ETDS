@@ -106,7 +106,59 @@ function refreshMap(){if(!map)return;map.eachLayer(l=>{if(l instanceof L.Marker)
 
 function renderAnalytics(){}
 function makeChart(ctx,type,data,opts={}){return new Chart(ctx,{type,data,options:{responsive:true,plugins:{legend:{labels:{color:'#9fb6c5'}}},scales:{x:{ticks:{color:'#708797'},grid:{color:'rgba(255,255,255,.05)'}},y:{ticks:{color:'#708797'},grid:{color:'rgba(255,255,255,.05)'}}},...opts}})}
-function drawMiniCharts(){if(powerChart)powerChart.destroy();powerChart=makeChart($('powerChart'), 'line',{labels:powerHistory.map(x=>x.t.toLocaleTimeString()),datasets:[{label:'kW',data:powerHistory.map(x=>x.v),tension:.3,borderWidth:2,pointRadius:0}]},{plugins:{legend:{display:false}}});if(scoreChart)scoreChart.destroy();scoreChart=makeChart($('scoreChart'),'line',{labels:scoreHistory.map(x=>x.t.toLocaleTimeString()),datasets:[{label:'Anomaly',data:scoreHistory.map(x=>x.v),tension:.25,borderWidth:2,pointRadius:0}]},{plugins:{legend:{display:false}},scales:{y:{min:0,max:1}}})}
+function drawMiniCharts(){
+  const labels = powerHistory.map(x=>x.t.toLocaleTimeString());
+  const powerData = powerHistory.map(x=>x.v);
+  const scoreData = scoreHistory.map(x=>x.v);
+
+  if(!powerChart){
+    powerChart = makeChart($('powerChart'), 'line', {
+      labels: labels,
+      datasets: [{
+        label: 'kW',
+        data: powerData,
+        borderColor: '#00f5ff',
+        backgroundColor: 'rgba(0, 245, 255, 0.1)',
+        fill: true,
+        tension: 0.35,
+        borderWidth: 2,
+        pointRadius: 0
+      }]
+    }, {
+      animation: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { suggestedMin: 0, suggestedMax: 0.5, grid: { color: 'rgba(255,255,255,0.05)' } }
+      }
+    });
+  } else {
+    powerChart.data.labels = labels;
+    powerChart.data.datasets[0].data = powerData;
+    powerChart.update('none'); // Instant smooth slide without full canvas rebuild
+  }
+
+  if(!scoreChart){
+    scoreChart = makeChart($('scoreChart'), 'line', {
+      labels: labels,
+      datasets: [{
+        label: 'Anomaly',
+        data: scoreData,
+        borderColor: '#ff197a',
+        tension: 0.25,
+        borderWidth: 2,
+        pointRadius: 0
+      }]
+    }, {
+      animation: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { min: 0, max: 1, grid: { color: 'rgba(255,255,255,0.05)' } } }
+    });
+  } else {
+    scoreChart.data.labels = labels;
+    scoreChart.data.datasets[0].data = scoreData;
+    scoreChart.update('none');
+  }
+}
 function renderCharts(){if(incidentChart)incidentChart.destroy();const buckets=new Map();incidents.forEach(x=>{const k=new Date(x.detected_at).toLocaleDateString();buckets.set(k,(buckets.get(k)||0)+1)});incidentChart=makeChart($('incidentChart'),'bar',{labels:[...buckets.keys()].slice(-14),datasets:[{label:'Incidents',data:[...buckets.values()].slice(-14),borderWidth:1}]});if(energyChart)energyChart.destroy();energyChart=makeChart($('energyChart'),'bar',{labels:meters.map(m=>m.meter_id),datasets:[{label:'Latest kWh',data:meters.map(m=>latestByMeter.get(m.meter_id)?.energy_kwh||0),borderWidth:1}]});}
 
 function subscribeRealtime(){channels.forEach(c=>sb.removeChannel(c));channels=[];const c=sb.channel('etds-live').on('postgres_changes',{event:'*',schema:'public',table:'meters'},p=>{refreshAll()}).on('postgres_changes',{event:'INSERT',schema:'public',table:'readings'},p=>{const r=p.new;if(r){lastEvent('Reading '+r.meter_id+' • '+(r.status||'normal'));powerHistory.push({t:new Date(r.measured_at||Date.now()),v:Number(r.power_kw)||0});scoreHistory.push({t:new Date(r.measured_at||Date.now()),v:Number(r.anomaly_score)||0});latestByMeter.set(r.meter_id,r);drawMiniCharts();renderOverview()}}).on('postgres_changes',{event:'*',schema:'public',table:'incidents'},p=>{lastEvent('Incident update • '+p.new?.meter_id);refreshAll()}).subscribe((status)=>{$('rtState').textContent=status;$('rtState').className=status==='SUBSCRIBED'?'text-emerald-300':'text-orange-300';$('sysRealtime').textContent=status;$('sysRealtime').className=status==='SUBSCRIBED'?'text-emerald-300':'text-orange-300';});channels.push(c)}
