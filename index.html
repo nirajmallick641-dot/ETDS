@@ -95,7 +95,6 @@ function renderOverview(){
   const now = Date.now();
   const online = meters.filter(m=>m.last_seen_at && (now - new Date(m.last_seen_at) < 90000)).length;
   
-  // 1. Inspect live hardware readings first
   let liveTamper = false;
   let totalPower = 0, latest = null, currentVolt = 18.0;
   for(const [id, x] of latestByMeter){
@@ -105,7 +104,6 @@ function renderOverview(){
     if(!latest || new Date(x.measured_at) > new Date(latest.measured_at)) latest = x;
   }
 
-  // 2. Count normal meters and active thefts safely
   const normal = liveTamper ? 0 : meters.filter(m=>m.status==='normal').length;
   const activeTheft = incidents.filter(x=>x.status==='active' && x.is_theft).length + (liveTamper ? 1 : 0);
 
@@ -126,7 +124,6 @@ function renderOverview(){
   $('healthNormalBar').style.width = norm + '%';
   $('healthSignalBar').style.width = sig + '%';
 
-  // 3. Update table rows
   if(!$('latestTable').children.length || $('latestTable').children.length !== meters.length){
     $('latestTable').innerHTML = meters.slice(0, 12).map(m=>{
       const x = latestByMeter.get(m.meter_id) || {};
@@ -147,7 +144,6 @@ function renderOverview(){
     });
   }
 
-  // 4. Show or hide red theft banner immediately on live tamper
   if(activeTheft > 0 || liveTamper){
     const a = incidents.find(x=>x.status==='active' && x.is_theft);
     $('theftBanner').classList.remove('hiddenx');
@@ -156,7 +152,6 @@ function renderOverview(){
     $('theftBanner').classList.add('hiddenx');
   }
 
-  // 5. Update graph buffer
   powerHistory.push({t: new Date(), v: totalPower});
   powerHistory = powerHistory.slice(-300);
   voltHistory.push(currentVolt);
@@ -176,64 +171,6 @@ function updateBuzzerState(){
   const theft = liveTamper || incidents.some(x=>x.status==='active' && x.is_theft);
   if(theft && !buzzerMuted) startBuzzer();
   else stopBuzzer();
-}
-
-const activeTheft = incidents.filter(x=>x.status==='active'&&x.is_theft).length + (liveTamper ? 1 : 0);
-  let totalPower=0,latest=null,currentVolt=18.0;
-  for(const [id,x] of latestByMeter){
-    totalPower+=Number(x.power_kw)||0;
-    if(x.voltage) currentVolt=Number(x.voltage);
-    if(!latest||new Date(x.measured_at)>new Date(latest.measured_at))latest=x
-  }
-  $('mOnline').textContent=online;
-  $('mTheft').textContent=activeTheft;
-  $('mPower').textContent=fmt(totalPower,3);
-  $('mFresh').textContent=latest?fmtAgo(latest.measured_at):'—';
-  const op=meters.length?Math.round(online/meters.length*100):0,norm=meters.length?Math.round(normal/meters.length*100):0,signals=meters.filter(m=>m.signal_strength!=null);
-  const sig=signals.length?Math.round(signals.reduce((a,m)=>a+(Math.max(0,Math.min(100,(Number(m.signal_strength)+100))),0),0)/signals.length):0;
-  $('healthOnline').textContent=op+'%';
-  $('healthNormal').textContent=norm+'%';
-  $('healthSignal').textContent=signals.length?sig+'%':'—';
-  $('healthOnlineBar').style.width=op+'%';
-  $('healthNormalBar').style.width=norm+'%';
-  $('healthSignalBar').style.width=sig+'%';
-
-  if(!$('latestTable').children.length || $('latestTable').children.length!==meters.length){
-    $('latestTable').innerHTML=meters.slice(0,12).map(m=>{
-      const x=latestByMeter.get(m.meter_id)||{};
-      return`<tr class="table-row" id="row-${m.meter_id}"><td class="p-2 font-semibold">${escapeHtml(m.meter_id)}<div class="text-xs text-slate-500">${escapeHtml(m.location||'')}</div></td><td class="p-2 col-v">${fmt(x.voltage)} V</td><td class="p-2 col-c">${fmt(x.current)} A</td><td class="p-2 col-p">${fmt(x.power_kw,3)} kW</td><td class="p-2 col-s">${statusBadge(m.status)}</td><td class="p-2 text-slate-400 col-t">${fmtAgo(m.last_seen_at)}</td></tr>`
-    }).join('')||'<tr><td colspan="6" class="p-5 text-center text-slate-500">No meters yet.</td></tr>';
-  } else {
-    meters.slice(0,12).forEach(m=>{
-      const row=$('row-'+m.meter_id);
-      if(row){
-        const x=latestByMeter.get(m.meter_id)||{};
-        const c=row.children;
-        if(c[1])c[1].textContent=fmt(x.voltage)+' V';
-        if(c[2])c[2].textContent=fmt(x.current)+' A';
-        if(c[3])c[3].textContent=fmt(x.power_kw,3)+' kW';
-        if(c[4])c[4].innerHTML=statusBadge(m.status);
-        if(c[5])c[5].textContent=fmtAgo(m.last_seen_at)
-      }
-    });
-  }
-
-  if(activeTheft>0){
-    const a=incidents.find(x=>x.status==='active'&&x.is_theft);
-    $('theftBanner').classList.remove('hiddenx');
-    $('theftBannerText').textContent=(a?.reasons||[]).join(' • ')||'Possible theft indicated by live telemetry.'
-  }else{
-    $('theftBanner').classList.add('hiddenx')
-  }
-
-  // Preserve up to 300 data points for timeline reviewing
-  powerHistory.push({t:new Date(),v:totalPower});
-  powerHistory=powerHistory.slice(-300);
-  voltHistory.push(currentVolt);
-  voltHistory=voltHistory.slice(-300);
-  scoreHistory.push({t:new Date(),v:latest?.anomaly_score||0});
-  scoreHistory=scoreHistory.slice(-300);
-  drawMiniCharts()
 }
 
 function renderMeters(){$('meterGrid').innerHTML=meters.map(m=>{const x=latestByMeter.get(m.meter_id)||{};return`<div class="glass card p-5"><div class="flex items-start justify-between"><div><div class="font-orbitron font-semibold">${escapeHtml(m.meter_id)}</div><div class="text-sm text-slate-400 mt-1">${escapeHtml(m.location||'Unassigned')}</div></div>${statusBadge(m.status)}</div><div class="grid grid-cols-2 gap-3 mt-5"><div class="p-3 rounded-xl bg-slate-900/40"><div class="text-xs text-slate-500">Voltage</div><div class="font-orbitron">${fmt(x.voltage)} V</div></div><div class="p-3 rounded-xl bg-slate-900/40"><div class="text-xs text-slate-500">Current</div><div class="font-orbitron">${fmt(x.current)} A</div></div><div class="p-3 rounded-xl bg-slate-900/40"><div class="text-xs text-slate-500">Power</div><div class="font-orbitron">${fmt(x.power_kw,3)} kW</div></div><div class="p-3 rounded-xl bg-slate-900/40"><div class="text-xs text-slate-500">Last seen</div><div>${fmtAgo(m.last_seen_at)}</div></div></div><div class="mt-4 text-xs text-slate-500">${m.tamper?'⚠️ Tamper signal active':'✓ No tamper signal'} ${m.signal_strength!=null?' • RSSI '+m.signal_strength+' dBm':''}</div></div>`}).join('')||'<div class="text-slate-500">No meters registered. Add your hardware meter ID first.</div>'}
@@ -361,7 +298,15 @@ function refreshFreshness(){renderOverview()}
 
 function startBuzzer(){if(!armed||buzzerMuted)return;if(!buzzerCtx)buzzerCtx=new (window.AudioContext||window.webkitAudioContext)();if(buzzerCtx.state==='suspended')buzzerCtx.resume();if(buzzerTimer)return;const beep=()=>{if(!armed||buzzerMuted||!buzzerCtx){buzzerTimer=null;return}const osc=buzzerCtx.createOscillator(),gain=buzzerCtx.createGain();osc.type='square';osc.frequency.value=880;gain.gain.setValueAtTime(.0001,buzzerCtx.currentTime);gain.gain.exponentialRampToValueAtTime(.12,buzzerCtx.currentTime+.01);gain.gain.exponentialRampToValueAtTime(.0001,buzzerCtx.currentTime+.22);osc.connect(gain).connect(buzzerCtx.destination);osc.start();osc.stop(buzzerCtx.currentTime+.23);buzzerTimer=setTimeout(beep,350)};beep();$('buzzerState').textContent='BUZZER ACTIVE';$('buzzerState').className='text-sm font-semibold text-pink-200 pulse'}
 function stopBuzzer(){if(buzzerTimer){clearTimeout(buzzerTimer);buzzerTimer=null}$('buzzerState').textContent=armed?'BUZZER ARMED':'BUZZER NOT ARMED';$('buzzerState').className='text-sm font-semibold '+(armed?'text-cyan-200':'text-slate-400')}
-function updateBuzzerState(){const theft=incidents.some(x=>x.status==='active'&&x.is_theft);if(theft&&!buzzerMuted)startBuzzer();else stopBuzzer()}
+function updateBuzzerState(){
+  let liveTamper = false;
+  for(const [id, x] of latestByMeter){
+    if(x.tamper === true || x.status === 'critical') liveTamper = true;
+  }
+  const theft = liveTamper || incidents.some(x=>x.status==='active'&&x.is_theft);
+  if(theft&&!buzzerMuted)startBuzzer();
+  else stopBuzzer()
+}
 $('buzzerArm').onclick=()=>{armed=!armed;buzzerMuted=false;$('buzzerArm').textContent=armed?'🔊 Buzzer Armed':'🔇 Arm Buzzer';updateBuzzerState();toast(armed?'Buzzer armed. Future theft incidents will sound automatically.':'Buzzer disarmed.','info')};$('panicStop').onclick=()=>{buzzerMuted=true;stopBuzzer();$('buzzerState').textContent='BUZZER MUTED';toast('Buzzer muted for this browser session.','info')};
 
 $('addMeter').onclick=()=>{$('addModal').classList.remove('hiddenx')};$('closeModal').onclick=()=>{$('addModal').classList.add('hiddenx')};$('saveMeter').onclick=async()=>{try{const meter={meter_id:$('newMeterId').value.trim(),location:$('newMeterLocation').value.trim()||'Unassigned',latitude:$('newLat').value?Number($('newLat').value):null,longitude:$('newLng').value?Number($('newLng').value):null};if(!meter.meter_id)throw Error('Meter ID required.');const r=await sb.from('meters').upsert(meter,{onConflict:'meter_id'});if(r.error)throw r.error;$('addModal').classList.add('hiddenx');toast('Meter saved.','success');refreshAll()}catch(e){toast(e.message||'Unable to save meter','error')}};
