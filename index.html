@@ -94,8 +94,13 @@ function renderAll(){renderOverview();renderMeters();renderIncidents();renderAna
 function renderOverview(){
   const now=Date.now();
   const online=meters.filter(m=>m.last_seen_at&&(now-new Date(m.last_seen_at)<90000)).length;
-  const normal=meters.filter(m=>m.status==='normal').length;
-  const activeTheft=incidents.filter(x=>x.status==='active'&&x.is_theft).length;
+ const normal = liveTamper ? 0 : meters.filter(m=>m.status==='normal').length; 
+let liveTamper = false;
+for(const [id, x] of latestByMeter){
+  if(x.tamper === true || x.status === 'critical') liveTamper = true;
+}
+
+const activeTheft = incidents.filter(x=>x.status==='active'&&x.is_theft).length + (liveTamper ? 1 : 0);
   let totalPower=0,latest=null,currentVolt=18.0;
   for(const [id,x] of latestByMeter){
     totalPower+=Number(x.power_kw)||0;
